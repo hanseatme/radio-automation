@@ -70,7 +70,7 @@
                         <th>Interpret</th>
                         <th>Dauer</th>
                         <th>Gespielt</th>
-                        <th style="width: 150px;">Aktionen</th>
+                        <th style="width: 220px;">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,6 +94,14 @@
                             <span class="badge bg-secondary">{{ file.play_count }}x</span>
                         </td>
                         <td>
+                            <button class="btn btn-sm btn-outline-success" onclick="playFile({{ file.id }}, '{{ file.title or file.filename }}', '{{ file.artist or '' }}')"
+                                    title="Anhören">
+                                <i class="bi bi-play-fill"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="showFileInfo({{ file.id }})"
+                                    title="Informationen">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
                             <button class="btn btn-sm btn-outline-primary" onclick="queueFile({{ file.id }})"
                                     title="Zur Warteschlange hinzufügen">
                                 <i class="bi bi-plus-circle"></i>
@@ -114,6 +122,95 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Player -->
+<div class="fixed-bottom bg-dark text-white p-3 d-none" id="audio-player-bar">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-light me-2" onclick="togglePlayPause()">
+                        <i class="bi bi-play-fill" id="play-pause-icon"></i>
+                    </button>
+                    <div>
+                        <div class="fw-bold small" id="player-title">-</div>
+                        <div class="text-muted small" id="player-artist">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <span class="small me-2" id="current-time">0:00</span>
+                    <input type="range" class="form-range flex-grow-1" id="seek-slider" min="0" max="100" value="0">
+                    <span class="small ms-2" id="duration-time">0:00</span>
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <button class="btn btn-sm btn-outline-light" onclick="closePlayer()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <audio id="audio-player" preload="metadata"></audio>
+</div>
+
+<!-- File Info Modal -->
+<div class="modal fade" id="fileInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-info-circle"></i> Datei-Informationen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th style="width: 40%;">Dateiname:</th>
+                            <td id="info-filename">-</td>
+                        </tr>
+                        <tr>
+                            <th>Titel:</th>
+                            <td id="info-title">-</td>
+                        </tr>
+                        <tr>
+                            <th>Interpret:</th>
+                            <td id="info-artist">-</td>
+                        </tr>
+                        <tr>
+                            <th>Kategorie:</th>
+                            <td id="info-category">-</td>
+                        </tr>
+                        <tr>
+                            <th>Dauer:</th>
+                            <td id="info-duration">-</td>
+                        </tr>
+                        <tr>
+                            <th>Hochgeladen:</th>
+                            <td id="info-uploaded">-</td>
+                        </tr>
+                        <tr>
+                            <th>Zuletzt gespielt:</th>
+                            <td id="info-last-played">-</td>
+                        </tr>
+                        <tr>
+                            <th>Anzahl Abspielungen:</th>
+                            <td id="info-play-count">-</td>
+                        </tr>
+                        <tr>
+                            <th>Dateipfad:</th>
+                            <td id="info-path" class="text-break small">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
         </div>
     </div>
 </div>
@@ -227,6 +324,111 @@ function deactivateAll() {
     document.querySelectorAll('#files-table tbody input[type="checkbox"]:checked').forEach(cb => {
         cb.click();
     });
+}
+
+// ========== AUDIO PLAYER ==========
+const audioPlayer = document.getElementById('audio-player');
+const playerBar = document.getElementById('audio-player-bar');
+const playPauseIcon = document.getElementById('play-pause-icon');
+const seekSlider = document.getElementById('seek-slider');
+const currentTimeDisplay = document.getElementById('current-time');
+const durationTimeDisplay = document.getElementById('duration-time');
+
+let isSeekingSuppressUpdate = false;
+
+function playFile(fileId, title, artist) {
+    const streamUrl = `/files/stream/${fileId}`;
+
+    // Update player info
+    document.getElementById('player-title').textContent = title || 'Unbekannt';
+    document.getElementById('player-artist').textContent = artist || '';
+
+    // Load and play
+    audioPlayer.src = streamUrl;
+    audioPlayer.load();
+    audioPlayer.play();
+
+    // Show player bar
+    playerBar.classList.remove('d-none');
+}
+
+function togglePlayPause() {
+    if (audioPlayer.paused) {
+        audioPlayer.play();
+    } else {
+        audioPlayer.pause();
+    }
+}
+
+function closePlayer() {
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    playerBar.classList.add('d-none');
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Audio player event listeners
+audioPlayer.addEventListener('play', () => {
+    playPauseIcon.classList.remove('bi-play-fill');
+    playPauseIcon.classList.add('bi-pause-fill');
+});
+
+audioPlayer.addEventListener('pause', () => {
+    playPauseIcon.classList.remove('bi-pause-fill');
+    playPauseIcon.classList.add('bi-play-fill');
+});
+
+audioPlayer.addEventListener('loadedmetadata', () => {
+    durationTimeDisplay.textContent = formatTime(audioPlayer.duration);
+    seekSlider.max = Math.floor(audioPlayer.duration);
+});
+
+audioPlayer.addEventListener('timeupdate', () => {
+    if (!isSeekingSuppressUpdate) {
+        currentTimeDisplay.textContent = formatTime(audioPlayer.currentTime);
+        seekSlider.value = Math.floor(audioPlayer.currentTime);
+    }
+});
+
+seekSlider.addEventListener('input', () => {
+    isSeekingSuppressUpdate = true;
+    currentTimeDisplay.textContent = formatTime(seekSlider.value);
+});
+
+seekSlider.addEventListener('change', () => {
+    audioPlayer.currentTime = seekSlider.value;
+    isSeekingSuppressUpdate = false;
+});
+
+// ========== FILE INFO MODAL ==========
+function showFileInfo(fileId) {
+    // Fetch file details from API
+    fetch(`/api/files/${fileId}`)
+        .then(response => response.json())
+        .then(file => {
+            document.getElementById('info-filename').textContent = file.filename;
+            document.getElementById('info-title').textContent = file.title || '-';
+            document.getElementById('info-artist').textContent = file.artist || '-';
+            document.getElementById('info-category').textContent = file.category.replace('-', ' ');
+            document.getElementById('info-duration').textContent = file.duration_formatted;
+            document.getElementById('info-uploaded').textContent = file.created_at ? new Date(file.created_at).toLocaleString('de-DE') : '-';
+            document.getElementById('info-last-played').textContent = file.last_played ? new Date(file.last_played).toLocaleString('de-DE') : 'Noch nie';
+            document.getElementById('info-play-count').textContent = file.play_count + 'x';
+            document.getElementById('info-path').textContent = file.path;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
+            modal.show();
+        })
+        .catch(error => {
+            showToast('Fehler beim Laden der Datei-Informationen', 'danger');
+        });
 }
 </script>
 {% endblock %}

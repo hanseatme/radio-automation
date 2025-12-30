@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, time
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
@@ -227,6 +227,24 @@ def delete_file(file_id):
         error_msg = f"Error deleting file {file_id}: {str(e)}\n{traceback.format_exc()}"
         print(error_msg, flush=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/files/stream/<int:file_id>')
+@login_required
+def stream_file(file_id):
+    """Stream an audio file for preview playback"""
+    audio_file = AudioFile.query.get_or_404(file_id)
+
+    # Check if file exists
+    if not os.path.exists(audio_file.path):
+        return jsonify({'error': 'File not found'}), 404
+
+    return send_file(
+        audio_file.path,
+        mimetype='audio/mpeg',
+        as_attachment=False,
+        download_name=audio_file.filename
+    )
 
 
 @main_bp.route('/rotation')

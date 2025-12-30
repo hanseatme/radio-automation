@@ -247,6 +247,13 @@ def get_all_files():
     return jsonify(result)
 
 
+@api_bp.route('/files/<int:file_id>')
+def get_file(file_id):
+    """Get details for a single file"""
+    audio_file = AudioFile.query.get_or_404(file_id)
+    return jsonify(audio_file.to_dict())
+
+
 @api_bp.route('/history')
 def get_history():
     """Get play history"""

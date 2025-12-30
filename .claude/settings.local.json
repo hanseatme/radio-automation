@@ -9,7 +9,17 @@
       "Bash(docker restart:*)",
       "Bash(docker ps:*)",
       "Bash(docker-compose restart:*)",
-      "Bash(winpty docker exec:*)"
+      "Bash(winpty docker exec:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nVersion 1.1.0 - Crossfade-System komplett überarbeitet\n\nFixes:\n- Crossfade-Einstellungen werden jetzt korrekt gespeichert und angewendet\n- JSON-Parser für Liquidsoap implementiert \\(lädt Einstellungen aus /data/stream_settings.json\\)\n- Liquidsoap duration-Parameter hinzugefügt für korrekte Überblendungszeiten\n- Deutsche Dezimalformat-Unterstützung \\(0,5 und 0.5 funktionieren beide\\)\n- Automatischer Liquidsoap-Neustart bei Einstellungsänderungen via supervisorctl\n\nImprovements:\n- Crossfade-Defaults von 0.05s auf 0.5s korrigiert \\(sanftere Überblendung\\)\n- supervisord.conf mit RPC-Interface konfiguriert\n- Telnet-Befehle für Crossfade-Status und -Steuerung\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(./build-for-plesk.bat)",
+      "Bash(tar:*)",
+      "Bash(powershell -Command \"\\(Select-String -Path app\\\\__init__.py -Pattern ''VERSION = ''\\).Line -replace ''.*\"\"\\(.*\\)\"\".*'',''$1''\")",
+      "Bash(findstr:*)",
+      "Bash(python:*)"
     ]
   }
 }

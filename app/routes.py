@@ -577,3 +577,10 @@ def moderation():
                            settings=settings,
                            beds=beds,
                            all_files=all_files)
+
+
+@main_bp.route('/statistics')
+@login_required
+def statistics():
+    """Statistics page showing listener counts and trends"""
+    return render_template('statistics.html')

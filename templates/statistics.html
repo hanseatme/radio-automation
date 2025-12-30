@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Hörerzahlen & Statistiken{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2><i class="bi bi-graph-up"></i> Hörerzahlen & Statistiken</h2>
+
+    <!-- Current Stats Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Aktuelle Hörer</h6>
+                    <h2 class="mb-0" id="current-listeners">
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Höchstwert (24h)</h6>
+                    <h2 class="mb-0 text-success" id="peak-listeners">
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Durchschnitt (24h)</h6>
+                    <h2 class="mb-0 text-primary" id="average-listeners">
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Datenpunkte</h6>
+                    <h2 class="mb-0 text-info" id="data-points">
+                        <span class="spinner-border spinner-border-sm"></span>
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Range Selector -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Zeitraum</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary active" data-hours="24">24 Stunden</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-hours="72">3 Tage</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-hours="168">7 Tage</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-hours="720">30 Tage</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Hörerverlauf</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="listenersChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="row mt-4 mb-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Detaillierte Daten</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="stats-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Zeitpunkt</th>
+                                    <th>Hörer</th>
+                                    <th>Peak</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stats-table-body">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <span class="spinner-border spinner-border-sm"></span> Lade Daten...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+let chart = null;
+let currentHours = 24;
+
+// Initialize chart
+function initChart() {
+    const ctx = document.getElementById('listenersChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Hörer',
+                data: [],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load statistics
+async function loadStatistics(hours = 24) {
+    try {
+        const response = await fetch(`/api/listeners/stats?hours=${hours}`);
+        const data = await response.json();
+
+        // Update current stats
+        document.getElementById('current-listeners').textContent = data.current;
+        document.getElementById('peak-listeners').textContent = data.peak;
+        document.getElementById('average-listeners').textContent = data.average;
+        document.getElementById('data-points').textContent = data.history.length;
+
+        // Update chart
+        const labels = data.history.map(item => {
+            const date = new Date(item.timestamp);
+            return date.toLocaleString('de-DE', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        });
+        const values = data.history.map(item => item.listener_count);
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.update();
+
+        // Update table
+        updateTable(data.history);
+
+    } catch (error) {
+        console.error('Failed to load statistics:', error);
+        showToast('Fehler beim Laden der Statistiken', 'danger');
+    }
+}
+
+// Update data table
+function updateTable(history) {
+    const tbody = document.getElementById('stats-table-body');
+    tbody.innerHTML = '';
+
+    if (history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Keine Daten verfügbar</td></tr>';
+        return;
+    }
+
+    // Show last 50 entries (most recent first)
+    const recentData = history.slice(-50).reverse();
+
+    recentData.forEach(item => {
+        const date = new Date(item.timestamp);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${date.toLocaleString('de-DE')}</td>
+            <td><span class="badge bg-primary">${item.listener_count}</span></td>
+            <td><span class="badge bg-success">${item.peak_listeners || item.listener_count}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Time range button handlers
+document.querySelectorAll('[data-hours]').forEach(button => {
+    button.addEventListener('click', function() {
+        // Update active button
+        document.querySelectorAll('[data-hours]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        this.classList.add('active');
+
+        // Load new data
+        currentHours = parseInt(this.getAttribute('data-hours'));
+        loadStatistics(currentHours);
+    });
+});
+
+// Auto-refresh every 5 minutes
+setInterval(() => {
+    loadStatistics(currentHours);
+}, 5 * 60 * 1000);
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+    loadStatistics(24);
+});
+</script>
+{% endblock %}

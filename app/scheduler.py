@@ -61,8 +61,21 @@ def init_scheduler(app):
             kwargs={'app': app}
         )
 
+        # Track listener statistics every 5 minutes
+        scheduler.add_job(
+            func=track_listener_stats,
+            trigger='interval',
+            minutes=5,
+            id='listener_tracking',
+            replace_existing=True,
+            kwargs={'app': app}
+        )
+
         # Generate playlists immediately on startup
         regenerate_playlists_task(app)
+
+        # Record initial listener stats on startup
+        track_listener_stats(app)
 
         scheduler.start()
 
@@ -414,3 +427,13 @@ def poll_current_track(app):
             'station': settings.station_name,
             'started_at': datetime.now().isoformat()
         })
+
+
+def track_listener_stats(app):
+    """Record listener statistics every 5 minutes"""
+    with app.app_context():
+        from app.listener_tracking import record_listener_stats
+        try:
+            record_listener_stats()
+        except Exception as e:
+            print(f'Error recording listener stats: {e}', flush=True)

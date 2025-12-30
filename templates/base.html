@@ -77,6 +77,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.statistics' %}active{% endif %}"
+                           href="{{ url_for('main.statistics') }}">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Statistiken</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'main.moderation' %}active{% endif %}"
                            href="{{ url_for('main.moderation') }}">
                             <i class="bi bi-mic-fill"></i>

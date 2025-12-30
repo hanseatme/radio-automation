@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 2  # Increment this when adding new migrations
+SCHEMA_VERSION = 3  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -93,12 +93,53 @@ def migration_v1_to_v2():
     return True
 
 
+def migration_v2_to_v3():
+    """
+    Migration from v2 to v3:
+    - Create listener_stats table for tracking listener counts
+    """
+    logger.info("Running migration v2 -> v3: Creating listener_stats table")
+
+    try:
+        # Check if table already exists
+        inspector = inspect(db.engine)
+        if 'listener_stats' in inspector.get_table_names():
+            logger.info("Migration v2 -> v3: listener_stats table already exists")
+            return True
+
+        # Create listener_stats table
+        db.session.execute(text("""
+            CREATE TABLE listener_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME NOT NULL,
+                listener_count INTEGER NOT NULL DEFAULT 0,
+                peak_listeners INTEGER DEFAULT 0,
+                mountpoint VARCHAR(100) NOT NULL DEFAULT '/stream'
+            )
+        """))
+
+        # Create index on timestamp for faster queries
+        db.session.execute(text("""
+            CREATE INDEX idx_listener_stats_timestamp
+            ON listener_stats(timestamp)
+        """))
+
+        db.session.commit()
+        logger.info("Migration v2 -> v3 completed successfully")
+        return True
+
+    except Exception as e:
+        logger.error(f"Migration v2 -> v3 failed: {e}")
+        db.session.rollback()
+        return False
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
     2: migration_v1_to_v2,
+    3: migration_v2_to_v3,
     # Add future migrations here:
-    # 3: migration_v2_to_v3,
     # 4: migration_v3_to_v4,
 }
 

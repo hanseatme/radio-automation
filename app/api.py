@@ -852,3 +852,57 @@ def get_recording_queue():
     from app.audio_engine import get_moderation_queue
     queue = get_moderation_queue()
     return jsonify(queue)
+
+
+# ==================== LISTENER STATISTICS ====================
+
+@api_bp.route('/listeners/current', methods=['GET'])
+def get_current_listeners():
+    """Get current listener count"""
+    from app.listener_tracking import get_icecast_listeners
+    count = get_icecast_listeners()
+    return jsonify({'listeners': count})
+
+
+@api_bp.route('/listeners/stats', methods=['GET'])
+def get_listener_stats():
+    """
+    Get listener statistics for a given time period
+    Query params:
+    - hours: Number of hours to look back (default: 24)
+    """
+    from app.listener_tracking import get_listener_statistics
+
+    hours = request.args.get('hours', 24, type=int)
+
+    # Limit to reasonable range
+    hours = max(1, min(hours, 720))  # 1 hour to 30 days
+
+    stats = get_listener_statistics(hours=hours)
+    return jsonify(stats)
+
+
+@api_bp.route('/listeners/history', methods=['GET'])
+def get_listener_history():
+    """
+    Get detailed listener history
+    Query params:
+    - hours: Number of hours to look back (default: 24)
+    - limit: Maximum number of data points to return (default: unlimited)
+    """
+    from app.models import ListenerStats
+
+    hours = request.args.get('hours', 24, type=int)
+    limit = request.args.get('limit', 0, type=int)
+
+    # Get stats
+    stats = ListenerStats.get_stats(hours=hours)
+
+    # Apply limit if specified
+    if limit > 0:
+        stats = stats[-limit:]
+
+    return jsonify({
+        'data': [s.to_dict() for s in stats],
+        'count': len(stats)
+    })

@@ -461,3 +461,65 @@ class ModerationSettings(db.Model):
             'jingle_volume': self.jingle_volume,
             'jingle_duck_music': self.jingle_duck_music
         }
+
+
+class ListenerStats(db.Model):
+    """Track listener count statistics in 5-minute intervals"""
+    __tablename__ = 'listener_stats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    listener_count = db.Column(db.Integer, default=0, nullable=False)
+
+    # Optional: track peak listeners during this interval
+    peak_listeners = db.Column(db.Integer, default=0)
+
+    # Track which mountpoint/stream this is for (if you have multiple)
+    mountpoint = db.Column(db.String(100), default='/stream', nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'listener_count': self.listener_count,
+            'peak_listeners': self.peak_listeners,
+            'mountpoint': self.mountpoint
+        }
+
+    @staticmethod
+    def get_stats(hours=24, mountpoint='/stream'):
+        """Get listener statistics for the last N hours"""
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        return ListenerStats.query.filter(
+            ListenerStats.timestamp >= cutoff,
+            ListenerStats.mountpoint == mountpoint
+        ).order_by(ListenerStats.timestamp.asc()).all()
+
+    @staticmethod
+    def get_current_listeners():
+        """Get the most recent listener count"""
+        stat = ListenerStats.query.order_by(ListenerStats.timestamp.desc()).first()
+        return stat.listener_count if stat else 0
+
+    @staticmethod
+    def get_peak_listeners(hours=24, mountpoint='/stream'):
+        """Get peak listener count in the last N hours"""
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        result = db.session.query(db.func.max(ListenerStats.listener_count)).filter(
+            ListenerStats.timestamp >= cutoff,
+            ListenerStats.mountpoint == mountpoint
+        ).scalar()
+        return result or 0
+
+    @staticmethod
+    def get_average_listeners(hours=24, mountpoint='/stream'):
+        """Get average listener count in the last N hours"""
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        result = db.session.query(db.func.avg(ListenerStats.listener_count)).filter(
+            ListenerStats.timestamp >= cutoff,
+            ListenerStats.mountpoint == mountpoint
+        ).scalar()
+        return round(result, 1) if result else 0

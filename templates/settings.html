@@ -198,6 +198,53 @@
             </div>
         </div>
 
+        <!-- Now Playing Custom Texts -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-display"></i> Now Playing Anzeige</h5>
+            </div>
+            <div class="card-body">
+                <form id="nowplaying-text-form">
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Hinweis:</strong> Diese Texte werden anstelle der Dateinamen angezeigt, wenn Jingles, Promos, Werbung oder Moderationen laufen.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingles</label>
+                        <input type="text" class="form-control" id="jingle-nowplaying-text"
+                               value="{{ stream_settings.jingle_nowplaying_text }}"
+                               placeholder="Jingle">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-megaphone-fill text-info me-1"></i> Promos</label>
+                        <input type="text" class="form-control" id="promo-nowplaying-text"
+                               value="{{ stream_settings.promo_nowplaying_text }}"
+                               placeholder="Promo">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-badge-ad-fill text-success me-1"></i> Werbung</label>
+                        <input type="text" class="form-control" id="ad-nowplaying-text"
+                               value="{{ stream_settings.ad_nowplaying_text }}"
+                               placeholder="Werbung">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-mic-fill text-danger me-1"></i> Moderationen</label>
+                        <input type="text" class="form-control" id="moderation-nowplaying-text"
+                               value="{{ stream_settings.moderation_nowplaying_text }}"
+                               placeholder="Moderation">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- API Info -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white">
@@ -496,6 +543,34 @@ document.getElementById('station-settings-form').addEventListener('submit', asyn
 
         if (data.success) {
             showToast('Sender-Einstellungen gespeichert', 'success');
+        } else {
+            showToast(data.error || 'Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+
+// Now Playing Custom Text Form
+document.getElementById('nowplaying-text-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jingle_nowplaying_text: document.getElementById('jingle-nowplaying-text').value,
+                promo_nowplaying_text: document.getElementById('promo-nowplaying-text').value,
+                ad_nowplaying_text: document.getElementById('ad-nowplaying-text').value,
+                moderation_nowplaying_text: document.getElementById('moderation-nowplaying-text').value
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Now Playing Texte gespeichert', 'success');
         } else {
             showToast(data.error || 'Fehler beim Speichern', 'danger');
         }

@@ -108,11 +108,11 @@ moderation_queue = request.queue(id="moderation_queue")
 # This prevents the same track from repeating too soon
 # IMPORTANT: Uses playlist file that contains only ACTIVE tracks
 # Playlist is sorted by play history to avoid repetition (recent songs at end)
-# reload=600 means playlist is reloaded every 10 minutes (prevents too frequent re-shuffling)
+# reload=3600 means playlist is reloaded every hour (prevents too frequent re-shuffling)
 music = playlist(
     id="music",
     mode="randomize",
-    reload=600,
+    reload=3600,
     "/data/playlists/music.m3u"
 )
 
@@ -154,11 +154,11 @@ radio_base = normalize(target=-16., radio_base)
 
 # Music bed playlist (loops background music for moderation)
 # IMPORTANT: Uses playlist file that contains only ACTIVE tracks
-# reload=600 means playlist is reloaded every 10 minutes
+# reload=3600 means playlist is reloaded every hour
 musicbed_playlist = playlist(
     id="musicbed",
     mode="random",
-    reload=600,
+    reload=3600,
     "/data/playlists/musicbeds.m3u"
 )
 

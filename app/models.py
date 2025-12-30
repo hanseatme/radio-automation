@@ -263,6 +263,12 @@ class StreamSettings(db.Model):
     station_name = db.Column(db.String(100), default='Radio Automation')
     default_show_name = db.Column(db.String(100), default='Automatik')  # When no show is running
 
+    # Now Playing custom texts for categories
+    jingle_nowplaying_text = db.Column(db.String(100), default='Jingle')
+    promo_nowplaying_text = db.Column(db.String(100), default='Promo')
+    ad_nowplaying_text = db.Column(db.String(100), default='Werbung')
+    moderation_nowplaying_text = db.Column(db.String(100), default='Moderation')
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -295,6 +301,10 @@ class StreamSettings(db.Model):
             'crossfade_moderation_fade_out': self.crossfade_moderation_fade_out,
             'station_name': self.station_name,
             'default_show_name': self.default_show_name,
+            'jingle_nowplaying_text': self.jingle_nowplaying_text,
+            'promo_nowplaying_text': self.promo_nowplaying_text,
+            'ad_nowplaying_text': self.ad_nowplaying_text,
+            'moderation_nowplaying_text': self.moderation_nowplaying_text,
             'current_show_id': self.current_show_id,
             'current_show_name': self.current_show.name if self.current_show else None
         }

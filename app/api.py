@@ -14,6 +14,9 @@ def update_now_playing():
     filename = request.form.get('filename', '')
     duration = request.form.get('duration', 0, type=float)
 
+    # Get settings for custom texts
+    settings = StreamSettings.get_settings()
+
     # Find audio file in database
     audio_file = AudioFile.query.filter_by(filename=filename).first()
 
@@ -25,6 +28,20 @@ def update_now_playing():
         artist = audio_file.artist or artist
         duration = audio_file.duration or duration
         category = audio_file.category
+
+        # Use custom text for jingles and moderations
+        if category == 'jingles':
+            title = settings.jingle_nowplaying_text
+            artist = ''
+        elif category == 'promos':
+            title = settings.promo_nowplaying_text
+            artist = ''
+        elif category == 'ads':
+            title = settings.ad_nowplaying_text
+            artist = ''
+        elif category in ['random-moderation', 'planned-moderation']:
+            title = settings.moderation_nowplaying_text
+            artist = ''
 
         # Log to history
         history = PlayHistory(
@@ -52,7 +69,6 @@ def update_now_playing():
     db.session.commit()
 
     # Get current show info
-    settings = StreamSettings.get_settings()
     show_name = settings.current_show.name if settings.current_show else settings.default_show_name
 
     # Broadcast to all connected clients
@@ -74,7 +90,25 @@ def update_now_playing():
 def get_nowplaying_json():
     """Public JSON API for current track info - no auth required"""
     np = NowPlaying.get_current()
-    return jsonify(np.to_dict())
+    response = jsonify(np.to_dict())
+
+    # Add CORS headers to allow external access (e.g., from JavaScript on other websites)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+
+    return response
+
+
+@api_bp.route('/nowplaying', methods=['OPTIONS'])
+@api_bp.route('/nowplaying.json', methods=['OPTIONS'])
+def nowplaying_options():
+    """Handle CORS preflight requests for nowplaying endpoint"""
+    response = Response()
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 
 @api_bp.route('/nowplaying.txt')
@@ -149,6 +183,16 @@ def update_stream_settings():
         settings.crossfade_moderation_fade_in = max(0.0, min(5.0, float(data['crossfade_moderation_fade_in'])))
     if 'crossfade_moderation_fade_out' in data:
         settings.crossfade_moderation_fade_out = max(0.0, min(5.0, float(data['crossfade_moderation_fade_out'])))
+
+    # Now Playing custom texts
+    if 'jingle_nowplaying_text' in data:
+        settings.jingle_nowplaying_text = data['jingle_nowplaying_text']
+    if 'promo_nowplaying_text' in data:
+        settings.promo_nowplaying_text = data['promo_nowplaying_text']
+    if 'ad_nowplaying_text' in data:
+        settings.ad_nowplaying_text = data['ad_nowplaying_text']
+    if 'moderation_nowplaying_text' in data:
+        settings.moderation_nowplaying_text = data['moderation_nowplaying_text']
 
     db.session.commit()
 
@@ -318,6 +362,9 @@ def internal_track_change():
     if '/' in filename:
         filename = filename.split('/')[-1]
 
+    # Get settings for custom texts
+    settings = StreamSettings.get_settings()
+
     # Try to find the file in database
     audio_file = AudioFile.query.filter_by(filename=filename).first()
 
@@ -326,6 +373,20 @@ def internal_track_change():
         artist = audio_file.artist or artist
         duration = audio_file.duration or 0
         category = audio_file.category
+
+        # Use custom text for jingles and moderations
+        if category == 'jingles':
+            title = settings.jingle_nowplaying_text
+            artist = ''
+        elif category == 'promos':
+            title = settings.promo_nowplaying_text
+            artist = ''
+        elif category == 'ads':
+            title = settings.ad_nowplaying_text
+            artist = ''
+        elif category in ['random-moderation', 'planned-moderation']:
+            title = settings.moderation_nowplaying_text
+            artist = ''
 
         # Update play count
         audio_file.play_count += 1
@@ -363,7 +424,6 @@ def internal_track_change():
         )
 
     # Broadcast via WebSocket
-    settings = StreamSettings.get_settings()
     show_name = settings.current_show.name if settings.current_show else settings.default_show_name
 
     socketio.emit('now_playing', {

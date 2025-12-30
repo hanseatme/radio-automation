@@ -10,7 +10,7 @@ cd /d "%~dp0"
 
 REM Version manuell setzen (sollte mit app/__init__.py VERSION synchron gehalten werden)
 echo [0/4] Extrahiere Version...
-set VERSION=1.2.0
+set VERSION=1.3.0
 echo Version: !VERSION!
 echo.
 echo WICHTIG: Stelle sicher dass VERSION in app/__init__.py auch !VERSION! ist!

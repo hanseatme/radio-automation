@@ -113,6 +113,15 @@ def toggle_file(file_id):
     audio_file = AudioFile.query.get_or_404(file_id)
     audio_file.is_active = not audio_file.is_active
     db.session.commit()
+
+    # Immediately regenerate the playlist for this category
+    from app.utils import generate_playlist_file
+    try:
+        generate_playlist_file(audio_file.category)
+        print(f'Regenerated playlist for {audio_file.category} after toggling {audio_file.filename}', flush=True)
+    except Exception as e:
+        print(f'Error regenerating playlist: {e}', flush=True)
+
     return jsonify({'success': True, 'is_active': audio_file.is_active})
 
 
@@ -151,6 +160,14 @@ def upload_file(category):
     db.session.add(audio_file)
     db.session.commit()
 
+    # Immediately regenerate the playlist to include new file
+    from app.utils import generate_playlist_file
+    try:
+        generate_playlist_file(category)
+        print(f'Regenerated playlist for {category} after uploading {filename}', flush=True)
+    except Exception as e:
+        print(f'Error regenerating playlist: {e}', flush=True)
+
     return jsonify({'success': True, 'file': audio_file.to_dict()})
 
 
@@ -162,8 +179,9 @@ def delete_file(file_id):
     try:
         audio_file = AudioFile.query.get_or_404(file_id)
 
-        # Save file path before deleting from DB (needed after commit)
+        # Save file path and category before deleting from DB (needed after commit)
         file_path = audio_file.path
+        category = audio_file.category
 
         # Remove references from related tables before deleting
         # Delete ShowItems that reference this file
@@ -192,6 +210,14 @@ def delete_file(file_id):
             except Exception as e:
                 # Log but don't fail if file removal fails
                 print(f"Warning: Could not delete physical file {file_path}: {e}")
+
+        # Immediately regenerate the playlist to exclude deleted file
+        from app.utils import generate_playlist_file
+        try:
+            generate_playlist_file(category)
+            print(f'Regenerated playlist for {category} after deleting file', flush=True)
+        except Exception as e:
+            print(f'Error regenerating playlist: {e}', flush=True)
 
         return jsonify({'success': True})
 

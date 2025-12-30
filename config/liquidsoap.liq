@@ -106,11 +106,12 @@ moderation_queue = request.queue(id="moderation_queue")
 # Main music playlist - starts playing immediately on boot
 # mode="randomize" shuffles the playlist once, then plays in order
 # This prevents the same track from repeating too soon
+# IMPORTANT: Uses playlist file that contains only ACTIVE tracks
 music = playlist(
     id="music",
     mode="randomize",
     reload=10,
-    "/media/music"
+    "/data/playlists/music.m3u"
 )
 
 # Make playlist safe (silence if empty/loading)
@@ -150,11 +151,12 @@ radio_base = normalize(target=-16., radio_base)
 # ========== MUSIC BED SOURCE ==========
 
 # Music bed playlist (loops background music for moderation)
+# IMPORTANT: Uses playlist file that contains only ACTIVE tracks
 musicbed_playlist = playlist(
     id="musicbed",
     mode="random",
     reload=10,
-    "/media/musicbeds"
+    "/data/playlists/musicbeds.m3u"
 )
 
 # Make music bed safe (returns silence if no files)

@@ -252,3 +252,65 @@ def get_random_file_from_category(category, exclude_recent_hours=None):
 
     # Fallback: if all files have been played recently, just pick any random one
     return base_query.order_by(func.random()).first()
+
+
+def generate_playlist_file(category):
+    """Generate a playlist file containing only active tracks from a category.
+
+    This creates a .m3u playlist file that Liquidsoap can use instead of
+    scanning the entire directory. Only active files are included.
+
+    Args:
+        category: The category to generate a playlist for
+
+    Returns:
+        Path to the generated playlist file, or None on error
+    """
+    try:
+        # Get all active files for this category
+        active_files = AudioFile.query.filter_by(
+            category=category,
+            is_active=True
+        ).all()
+
+        # Generate playlist path
+        playlist_path = f'/data/playlists/{category}.m3u'
+
+        # Ensure playlist directory exists
+        os.makedirs('/data/playlists', exist_ok=True)
+
+        # Write playlist file
+        with open(playlist_path, 'w', encoding='utf-8') as f:
+            f.write('#EXTM3U\n')
+            for file in active_files:
+                # Write metadata line
+                duration = int(file.duration) if file.duration else 0
+                artist = file.artist or 'Unknown Artist'
+                title = file.title or file.filename
+                f.write(f'#EXTINF:{duration},{artist} - {title}\n')
+                # Write file path
+                f.write(f'{file.path}\n')
+
+        print(f'Generated playlist for {category}: {len(active_files)} active tracks', flush=True)
+        return playlist_path
+
+    except Exception as e:
+        print(f'Error generating playlist for {category}: {e}', flush=True)
+        return None
+
+
+def regenerate_all_playlists():
+    """Regenerate playlist files for all categories.
+
+    This should be called:
+    - On startup
+    - When a file's active status changes
+    - Periodically (every few minutes) to stay in sync
+    """
+    categories = ['music', 'promos', 'jingles', 'ads', 'random-moderation',
+                  'planned-moderation', 'musicbeds']
+
+    for category in categories:
+        generate_playlist_file(category)
+
+    print('All playlists regenerated', flush=True)

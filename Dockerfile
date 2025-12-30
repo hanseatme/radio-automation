@@ -27,7 +27,7 @@ COPY entrypoint.sh .
 # Create necessary directories
 RUN mkdir -p /media/music /media/promos /media/jingles /media/ads \
     /media/random-moderation /media/planned-moderation /media/musicbeds \
-    /data /var/log/icecast2 /var/log/liquidsoap /var/log/supervisor
+    /data /data/playlists /var/log/icecast2 /var/log/liquidsoap /var/log/supervisor
 
 # Copy configuration files
 COPY config/icecast.xml /etc/icecast2/icecast.xml

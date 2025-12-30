@@ -50,6 +50,19 @@ def init_scheduler(app):
             kwargs={'app': app}
         )
 
+        # Regenerate playlists periodically to reflect active/inactive changes
+        scheduler.add_job(
+            func=regenerate_playlists_task,
+            trigger='interval',
+            minutes=2,
+            id='playlist_regeneration',
+            replace_existing=True,
+            kwargs={'app': app}
+        )
+
+        # Generate playlists immediately on startup
+        regenerate_playlists_task(app)
+
         scheduler.start()
 
 
@@ -223,6 +236,16 @@ def scan_all_media(app):
         from app.utils import scan_media_files
         for category in app.config['CATEGORIES']:
             scan_media_files(category)
+
+
+def regenerate_playlists_task(app):
+    """Regenerate all playlist files with active tracks only"""
+    with app.app_context():
+        from app.utils import regenerate_all_playlists
+        try:
+            regenerate_all_playlists()
+        except Exception as e:
+            print(f'Error regenerating playlists: {e}', flush=True)
 
 
 def poll_current_track(app):

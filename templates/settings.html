@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block title %}Einstellungen - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2><i class="bi bi-gear"></i> Einstellungen</h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Stream Output Settings -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-broadcast"></i> Stream-Ausgabe</h5>
+            </div>
+            <div class="card-body">
+                <form id="stream-settings-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ausgabeformat</label>
+                            <select class="form-select" id="output-format">
+                                <option value="mp3" {{ 'selected' if stream_settings.output_format == 'mp3' }}>MP3</option>
+                                <option value="aac" {{ 'selected' if stream_settings.output_format == 'aac' }}>AAC</option>
+                                <option value="ogg" {{ 'selected' if stream_settings.output_format == 'ogg' }}>OGG Vorbis</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bitrate (kbps)</label>
+                            <select class="form-select" id="output-bitrate">
+                                <option value="96" {{ 'selected' if stream_settings.output_bitrate == 96 }}>96</option>
+                                <option value="128" {{ 'selected' if stream_settings.output_bitrate == 128 }}>128</option>
+                                <option value="192" {{ 'selected' if stream_settings.output_bitrate == 192 }}>192</option>
+                                <option value="256" {{ 'selected' if stream_settings.output_bitrate == 256 }}>256</option>
+                                <option value="320" {{ 'selected' if stream_settings.output_bitrate == 320 }}>320</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Samplerate (Hz)</label>
+                            <select class="form-select" id="output-samplerate">
+                                <option value="22050" {{ 'selected' if stream_settings.output_samplerate == 22050 }}>22050</option>
+                                <option value="44100" {{ 'selected' if stream_settings.output_samplerate == 44100 }}>44100</option>
+                                <option value="48000" {{ 'selected' if stream_settings.output_samplerate == 48000 }}>48000</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Kanäle</label>
+                            <select class="form-select" id="output-channels">
+                                <option value="1" {{ 'selected' if stream_settings.output_channels == 1 }}>Mono</option>
+                                <option value="2" {{ 'selected' if stream_settings.output_channels == 2 }}>Stereo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-sliders"></i> Loudness-Normalisierung</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="normalize-enabled"
+                                       {{ 'checked' if stream_settings.normalize_enabled }}>
+                                <label class="form-check-label" for="normalize-enabled">
+                                    Normalisierung aktiviert
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ziel-LUFS</label>
+                            <input type="number" class="form-control" id="target-lufs"
+                                   value="{{ stream_settings.target_lufs }}"
+                                   min="-24" max="-9" step="0.5">
+                            <small class="text-muted">Empfohlen: -16 LUFS (Streaming Standard)</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Crossfade Settings -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-soundwave"></i> Crossfade / Überblendung</h5>
+            </div>
+            <div class="card-body">
+                <form id="crossfade-settings-form">
+                    <p class="text-muted small mb-3">Definiere Überblendzeiten für verschiedene Inhaltstypen. Musik wird beim Überblenden automatisch ausgefadet.</p>
+
+                    <!-- Music Crossfade -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="bi bi-music-note-beamed text-primary me-1"></i> Musik</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-music-fade-in"
+                                       value="{{ stream_settings.crossfade_music_fade_in|default(0.5) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-music-fade-out"
+                                       value="{{ stream_settings.crossfade_music_fade_out|default(0.5) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jingle Crossfade -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingles</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-jingle-fade-in"
+                                       value="{{ stream_settings.crossfade_jingle_fade_in|default(0.0) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-jingle-fade-out"
+                                       value="{{ stream_settings.crossfade_jingle_fade_out|default(0.0) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Moderation Crossfade -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="bi bi-mic-fill text-danger me-1"></i> Moderationen</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-moderation-fade-in"
+                                       value="{{ stream_settings.crossfade_moderation_fade_in|default(0.0) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
+                                <input type="number" class="form-control form-control-sm" id="crossfade-moderation-fade-out"
+                                       value="{{ stream_settings.crossfade_moderation_fade_out|default(0.0) }}"
+                                       min="0" max="5" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Station Settings -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Sender-Informationen</h5>
+            </div>
+            <div class="card-body">
+                <form id="station-settings-form">
+                    <div class="mb-3">
+                        <label class="form-label">Sendername</label>
+                        <input type="text" class="form-control" id="station-name"
+                               value="{{ stream_settings.station_name }}" required>
+                        <small class="text-muted">Wird in der API und im Stream-Titel angezeigt</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Standard-Sendungsname (Automatik)</label>
+                        <input type="text" class="form-control" id="default-show-name"
+                               value="{{ stream_settings.default_show_name }}" required>
+                        <small class="text-muted">Wird angezeigt, wenn keine Sendung läuft</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aktuelle Sendung</label>
+                        <select class="form-select" id="current-show">
+                            <option value="">-- Automatik --</option>
+                            {% for show in shows %}
+                            <option value="{{ show.id }}" {{ 'selected' if stream_settings.current_show_id == show.id }}>
+                                {{ show.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Manuell eine aktive Sendung setzen</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- API Info -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-code-slash"></i> JSON API</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Now Playing:</strong></td>
+                        <td>
+                            <code id="api-nowplaying-url">/api/nowplaying.json</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyApiUrl('nowplaying')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <pre class="bg-light p-2 rounded small mb-0">{
+  "title": "Aktueller Titel",
+  "artist": "Interpret",
+  "show": "Sendungsname",
+  "station": "{{ stream_settings.station_name }}",
+  "duration": 180,
+  "elapsed": 45,
+  "remaining": 135
+}</pre>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Password Change -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-key"></i> Passwort ändern</h5>
+            </div>
+            <div class="card-body">
+                <form id="password-form">
+                    <div class="mb-3">
+                        <label class="form-label">Aktuelles Passwort</label>
+                        <input type="password" class="form-control" id="current-password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Passwort</label>
+                        <input type="password" class="form-control" id="new-password" required minlength="4">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Passwort bestätigen</label>
+                        <input type="password" class="form-control" id="confirm-password" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Passwort ändern
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stream Info -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-broadcast-pin"></i> Stream-URLs</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Stream URL:</strong></td>
+                        <td>
+                            <code>http://[SERVER-IP]:8000/stream</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyStreamUrl()">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Format:</strong></td>
+                        <td id="current-format-display">
+                            {{ stream_settings.output_format|upper }} {{ stream_settings.output_bitrate }}kbps
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin-Interface:</strong></td>
+                        <td><code>http://[SERVER-IP]:8080</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Icecast Status:</strong></td>
+                        <td><code>http://[SERVER-IP]:8000</code></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> System</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td><strong>Benutzer:</strong></td>
+                        <td>{{ current_user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rolle:</strong></td>
+                        <td>
+                            {% if current_user.is_admin %}
+                            <span class="badge bg-danger">Administrator</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Benutzer</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Version:</strong></td>
+                        <td>1.1.0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Unterstützte Formate:</strong></td>
+                        <td><small>MP3, WAV, FLAC, OGG, M4A, AAC, WMA, OPUS</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-question-circle"></i> Hilfe</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="helpAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help1">
+                                Wie füge ich Musik hinzu?
+                            </button>
+                        </h2>
+                        <div id="help1" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                Legen Sie Audio-Dateien (MP3, WAV, FLAC, OGG, M4A, AAC, WMA, OPUS) in die entsprechenden Ordner im Media-Verzeichnis:
+                                <ul>
+                                    <li><code>/media/music/</code> - Musiktitel</li>
+                                    <li><code>/media/jingles/</code> - Jingles</li>
+                                    <li><code>/media/promos/</code> - Promos</li>
+                                    <li><code>/media/ads/</code> - Werbung</li>
+                                    <li><code>/media/random-moderation/</code> - Zufällige Moderationen</li>
+                                    <li><code>/media/planned-moderation/</code> - Geplante Moderationen</li>
+                                </ul>
+                                Alternativ können Sie Dateien über die Dateiverwaltung hochladen. Alle Formate werden automatisch in das konfigurierte Ausgabeformat konvertiert und normalisiert.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help2">
+                                Was ist Loudness-Normalisierung?
+                            </button>
+                        </h2>
+                        <div id="help2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                Die Loudness-Normalisierung sorgt dafür, dass alle Audio-Dateien mit gleicher Lautstärke wiedergegeben werden:
+                                <ul>
+                                    <li><strong>-16 LUFS:</strong> Standard für Streaming-Dienste (Spotify, YouTube)</li>
+                                    <li><strong>-14 LUFS:</strong> Etwas lauter, für dynamischere Inhalte</li>
+                                    <li><strong>-18 bis -20 LUFS:</strong> Leiser, für Podcasts oder Sprache</li>
+                                </ul>
+                                Egal ob Ihre Quelldatei 128kbps MP3 oder 24-bit FLAC ist - die Ausgabe wird einheitlich normalisiert.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help3">
+                                Wie nutze ich die JSON API?
+                            </button>
+                        </h2>
+                        <div id="help3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                Die JSON API ermöglicht die Integration mit externen Systemen:
+                                <pre class="bg-light p-2 rounded">GET http://[SERVER-IP]:8080/api/nowplaying.json</pre>
+                                Die API gibt Echtzeit-Informationen über den aktuellen Titel, Interpret, Sendung und Fortschritt zurück. Ideal für:
+                                <ul>
+                                    <li>Webseiten-Widgets ("Jetzt läuft...")</li>
+                                    <li>Smart-Home-Integrationen</li>
+                                    <li>Discord-Bots</li>
+                                    <li>OBS/Streaming-Software</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Stream Settings Form
+document.getElementById('stream-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                output_format: document.getElementById('output-format').value,
+                output_bitrate: document.getElementById('output-bitrate').value,
+                output_samplerate: document.getElementById('output-samplerate').value,
+                output_channels: document.getElementById('output-channels').value,
+                normalize_enabled: document.getElementById('normalize-enabled').checked,
+                target_lufs: document.getElementById('target-lufs').value
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Stream-Einstellungen gespeichert', 'success');
+            document.getElementById('current-format-display').textContent =
+                data.settings.output_format.toUpperCase() + ' ' + data.settings.output_bitrate + 'kbps';
+        } else {
+            showToast(data.error || 'Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+
+// Crossfade Settings Form
+document.getElementById('crossfade-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                crossfade_music_fade_in: parseFloat(document.getElementById('crossfade-music-fade-in').value),
+                crossfade_music_fade_out: parseFloat(document.getElementById('crossfade-music-fade-out').value),
+                crossfade_jingle_fade_in: parseFloat(document.getElementById('crossfade-jingle-fade-in').value),
+                crossfade_jingle_fade_out: parseFloat(document.getElementById('crossfade-jingle-fade-out').value),
+                crossfade_moderation_fade_in: parseFloat(document.getElementById('crossfade-moderation-fade-in').value),
+                crossfade_moderation_fade_out: parseFloat(document.getElementById('crossfade-moderation-fade-out').value)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Crossfade-Einstellungen gespeichert', 'success');
+        } else {
+            showToast(data.error || 'Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+
+// Station Settings Form
+document.getElementById('station-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                station_name: document.getElementById('station-name').value,
+                default_show_name: document.getElementById('default-show-name').value,
+                current_show_id: document.getElementById('current-show').value || null
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Sender-Einstellungen gespeichert', 'success');
+        } else {
+            showToast(data.error || 'Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+
+// Password Form
+document.getElementById('password-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+        showToast('Passwörter stimmen nicht überein', 'danger');
+        return;
+    }
+
+    try {
+        const response = await fetch('/settings/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                current_password: document.getElementById('current-password').value,
+                new_password: newPassword
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Passwort erfolgreich geändert', 'success');
+            document.getElementById('password-form').reset();
+        } else {
+            showToast(data.error || 'Fehler beim Ändern des Passworts', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+
+function copyStreamUrl() {
+    const url = window.location.protocol + '//' + window.location.hostname + ':8000/stream';
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('Stream-URL kopiert', 'success');
+    });
+}
+
+function copyApiUrl(endpoint) {
+    const url = window.location.protocol + '//' + window.location.hostname + ':8080/api/' + endpoint + '.json';
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('API-URL kopiert', 'success');
+    });
+}
+</script>
+{% endblock %}

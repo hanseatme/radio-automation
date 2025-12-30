@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Verlauf - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2><i class="bi bi-clock-history"></i> Wiedergabeverlauf</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Zeit</th>
+                                <th>Titel</th>
+                                <th>Interpret</th>
+                                <th>Kategorie</th>
+                                <th>Auslöser</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for play in history.items %}
+                            <tr>
+                                <td>
+                                    <small>
+                                        {{ play.played_at.strftime('%d.%m.%Y') }}<br>
+                                        <strong>{{ play.played_at.strftime('%H:%M:%S') }}</strong>
+                                    </small>
+                                </td>
+                                <td>
+                                    <strong>{{ play.title or play.filename }}</strong>
+                                </td>
+                                <td>{{ play.artist or '-' }}</td>
+                                <td>
+                                    {% if play.category %}
+                                    <span class="badge bg-secondary text-capitalize">
+                                        {{ play.category.replace('-', ' ') }}
+                                    </span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if play.triggered_by == 'rotation' %}
+                                    <span class="badge bg-primary">Rotation</span>
+                                    {% elif play.triggered_by == 'schedule' %}
+                                    <span class="badge bg-success">Zeitplan</span>
+                                    {% elif play.triggered_by == 'manual' %}
+                                    <span class="badge bg-info">Manuell</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ play.triggered_by or 'Unbekannt' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">Kein Verlauf vorhanden</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if history.pages > 1 %}
+            <div class="card-footer bg-white">
+                <nav>
+                    <ul class="pagination mb-0 justify-content-center">
+                        {% if history.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.history', page=history.prev_num) }}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in history.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {% if page_num == history.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('main.history', page=page_num) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if history.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.history', page=history.next_num) }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

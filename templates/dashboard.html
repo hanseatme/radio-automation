@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - RadioPro{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Command Bar */
+.command-bar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.command-bar .live-badge {
+    background: var(--success);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Quick Actions in Command Bar */
+.quick-actions-inline {
+    display: flex;
+    gap: 6px;
+}
+
+.quick-btn {
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.quick-btn:hover {
+    transform: translateY(-1px);
+}
+
+.quick-btn.jingle { background: rgba(var(--info-rgb), 0.15); color: var(--info); border-color: var(--info); }
+.quick-btn.promo { background: rgba(var(--warning-rgb), 0.15); color: var(--warning); border-color: var(--warning); }
+.quick-btn.ad { background: rgba(var(--danger-rgb), 0.15); color: var(--danger); border-color: var(--danger); }
+.quick-btn.mod { background: rgba(var(--primary-rgb), 0.15); color: var(--primary); border-color: var(--primary); }
+
+/* Studio Controls Inline */
+.studio-controls-inline {
+    display: flex;
+    gap: 8px;
+}
+
+.control-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.control-toggle:hover {
+    border-color: var(--primary);
+}
+
+.control-toggle.active-bed {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.control-toggle.active-duck {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: #1a1d26;
+}
+
+.control-toggle .indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.control-toggle.active-bed .indicator,
+.control-toggle.active-duck .indicator {
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+}
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    flex: 1;
+    min-width: 100px;
+}
+
+.stat-chip .stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.stat-chip .stat-icon.music { background: rgba(var(--cat-music-rgb, 99, 102, 241), 0.15); color: var(--cat-music, #6366f1); }
+.stat-chip .stat-icon.jingles { background: rgba(var(--info-rgb), 0.15); color: var(--info); }
+.stat-chip .stat-icon.promos { background: rgba(var(--warning-rgb), 0.15); color: var(--warning); }
+.stat-chip .stat-icon.ads { background: rgba(var(--danger-rgb), 0.15); color: var(--danger); }
+.stat-chip .stat-icon.moderation { background: rgba(var(--primary-rgb), 0.15); color: var(--primary); }
+
+.stat-chip .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-chip .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Main Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Compact Card */
+.compact-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.compact-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+}
+
+.compact-card-header h6 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compact-card-body {
+    padding: 12px;
+}
+
+/* Queue Items */
+.queue-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.queue-item:hover {
+    border-left-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.queue-item:last-child {
+    margin-bottom: 0;
+}
+
+.queue-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.queue-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.queue-info .title {
+    font-weight: 500;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-info .artist {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.queue-duration {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+/* Compact Table */
+.compact-table {
+    width: 100%;
+    font-size: 0.85rem;
+}
+
+.compact-table th {
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.compact-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.compact-table tr:last-child td {
+    border-bottom: none;
+}
+
+.compact-table tr:hover td {
+    background: var(--bg-tertiary);
+}
+
+/* Rotation Card */
+.rotation-summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+}
+
+.rotation-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rotate-slow 10s linear infinite;
+}
+
+.rotation-icon i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+@keyframes rotate-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.rotation-info .count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.rotation-info .label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Right Column Stack */
+.right-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Left Column Stack */
+.left-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Scrollable content */
+.scrollable-content {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .command-bar {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .quick-actions-inline {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .studio-controls-inline {
+        justify-content: center;
+    }
+
+    .stats-bar {
+        flex-wrap: wrap;
+    }
+
+    .stat-chip {
+        min-width: calc(50% - 4px);
+        flex: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Command Bar -->
+<div class="command-bar d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="live-badge">
+            <span class="pulse-dot"></span> LIVE
+        </div>
+        <div class="quick-actions-inline">
+            <button class="quick-btn jingle" onclick="insertCategory('jingles')" title="Jingle einfugen">
+                <i class="bi bi-soundwave"></i> Jingle
+            </button>
+            <button class="quick-btn promo" onclick="insertCategory('promos')" title="Promo einfugen">
+                <i class="bi bi-megaphone-fill"></i> Promo
+            </button>
+            <button class="quick-btn ad" onclick="insertCategory('ads')" title="Werbung einfugen">
+                <i class="bi bi-badge-ad-fill"></i> Ad
+            </button>
+            <button class="quick-btn mod" onclick="insertCategory('random-moderation')" title="Moderation einfugen">
+                <i class="bi bi-mic-fill"></i> Mod
+            </button>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="studio-controls-inline">
+            <button class="control-toggle" id="quick-bed-btn" onclick="quickToggleBed()" title="Musikbett">
+                <span class="indicator"></span>
+                <i class="bi bi-music-note-list"></i> Bed
+            </button>
+            <button class="control-toggle" id="quick-duck-btn" onclick="quickToggleDuck()" title="Ducking">
+                <span class="indicator"></span>
+                <i class="bi bi-volume-down-fill"></i> Duck
+            </button>
+        </div>
+        <a href="{{ url_for('main.moderation') }}" class="btn btn-sm btn-primary" title="Studio offnen">
+            <i class="bi bi-broadcast"></i> Studio
+        </a>
+    </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+    {% for category, count in file_counts.items() %}
+    <div class="stat-chip">
+        <div class="stat-icon {{ category }}">
+            {% if category == 'music' %}
+            <i class="bi bi-music-note-beamed"></i>
+            {% elif category == 'jingles' %}
+            <i class="bi bi-soundwave"></i>
+            {% elif category == 'promos' %}
+            <i class="bi bi-megaphone-fill"></i>
+            {% elif category == 'ads' %}
+            <i class="bi bi-badge-ad-fill"></i>
+            {% else %}
+            <i class="bi bi-mic-fill"></i>
+            {% endif %}
+        </div>
+        <div>
+            <div class="stat-value">{{ count }}</div>
+            <div class="stat-label">{{ category.replace('-', ' ').title() }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Left Column: Queue + History -->
+    <div class="left-stack">
+        <!-- Queue -->
+        <div class="compact-card">
+            <div class="compact-card-header">
+                <h6><i class="bi bi-list-ul"></i> Warteschlange</h6>
+                {% if queue_status and queue_status|length > 0 %}
+                <button class="btn btn-sm btn-outline-danger" onclick="clearQueue()">
+                    <i class="bi bi-trash3"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="compact-card-body">
+                <div id="queue-list" class="scrollable-content">
+                    {% if queue_status and queue_status|length > 0 %}
+                    {% for item in queue_status %}
+                    <div class="queue-item">
+                        <div class="queue-number">{{ loop.index }}</div>
+                        <div class="queue-info">
+                            <div class="title">
+                                {{ item.title or 'Unbekannt' }}
+                                {% if item.queue_type == 'moderation' %}
+                                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MOD</span>
+                                {% endif %}
+                            </div>
+                            {% if item.artist %}
+                            <div class="artist">{{ item.artist }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="queue-duration">
+                            <i class="bi bi-clock me-1"></i>{{ item.duration|default('--:--') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-inbox d-block"></i>
+                        <p>Warteschlange ist leer<br><small>Titel werden aus der Rotation gespielt</small></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent History -->
+        <div class="compact-card">
+            <div class="compact-card-header">
+                <h6><i class="bi bi-clock-history"></i> Letzte Titel</h6>
+                <a href="{{ url_for('main.history') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="compact-card-body p-0">
+                <div class="scrollable-content">
+                    <table class="compact-table">
+                        <thead>
+                            <tr>
+                                <th>Titel</th>
+                                <th>Kategorie</th>
+                                <th>Zeit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for play in recent_plays %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ play.title or play.filename }}</div>
+                                    <small class="text-muted">{{ play.artist or '' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge category-{{ play.category }}">
+                                        {{ play.category.replace('-', ' ').title() if play.category else 'N/A' }}
+                                    </span>
+                                </td>
+                                <td class="text-muted">{{ play.played_at.strftime('%H:%M') }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    <i class="bi bi-clock me-2"></i>Kein Verlauf
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Rotation + Upcoming -->
+    <div class="right-stack">
+        <!-- Rotation -->
+        <div class="compact-card">
+            <div class="compact-card-header">
+                <h6><i class="bi bi-arrow-repeat"></i> Rotation</h6>
+                <span class="badge bg-primary">{{ active_rules }} aktiv</span>
+            </div>
+            <div class="compact-card-body p-0">
+                <div class="rotation-summary">
+                    <div class="rotation-icon">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="rotation-info flex-grow-1">
+                        <div class="count">{{ active_rules }}</div>
+                        <div class="label">Aktive Rotationsregeln</div>
+                    </div>
+                    <a href="{{ url_for('main.rotation') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-gear-fill me-1"></i> Verwalten
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Schedules -->
+        <div class="compact-card">
+            <div class="compact-card-header">
+                <h6><i class="bi bi-calendar3"></i> Kommende Sendungen</h6>
+                <a href="{{ url_for('main.schedule') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="compact-card-body p-0">
+                <div class="scrollable-content">
+                    <table class="compact-table">
+                        <thead>
+                            <tr>
+                                <th>Sendung</th>
+                                <th>Geplant</th>
+                                <th>Typ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in upcoming %}
+                            <tr>
+                                <td class="fw-semibold">{{ schedule.show.name if schedule.show else 'N/A' }}</td>
+                                <td class="text-muted">{{ schedule.scheduled_time.strftime('%d.%m. %H:%M') }}</td>
+                                <td><span class="badge bg-info">{{ schedule.repeat_type }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    <i class="bi bi-calendar-x me-2"></i>Keine Sendungen geplant
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Summary -->
+        <div class="compact-card">
+            <div class="compact-card-header">
+                <h6><i class="bi bi-graph-up"></i> Schnellubersicht</h6>
+            </div>
+            <div class="compact-card-body">
+                <div class="d-flex justify-content-around text-center">
+                    <div>
+                        <div class="h4 mb-0 fw-bold" style="color: var(--primary);" id="dash-listeners">0</div>
+                        <small class="text-muted">Listeners</small>
+                    </div>
+                    <div class="border-start border-end px-4">
+                        <div class="h4 mb-0 fw-bold" style="color: var(--success);">{{ file_counts.values()|sum }}</div>
+                        <small class="text-muted">Dateien</small>
+                    </div>
+                    <div>
+                        <div class="h4 mb-0 fw-bold" style="color: var(--info);">{{ active_rules }}</div>
+                        <small class="text-muted">Regeln</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Insert category
+function insertCategory(category) {
+    fetch('/api/insert/' + category, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Element aus ' + category + ' eingefugt', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Fehler beim Einfugen', 'danger');
+            }
+        })
+        .catch(error => showToast('Fehler: ' + error, 'danger'));
+}
+
+// Clear queue
+function clearQueue() {
+    if (confirm('Warteschlange leeren?')) {
+        fetch('/api/queue/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Warteschlange geleert', 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast('Fehler beim Leeren', 'danger');
+                }
+            })
+            .catch(error => showToast('Fehler: ' + error, 'danger'));
+    }
+}
+
+// Moderation Quick Controls
+let modBedEnabled = false;
+let modDuckEnabled = false;
+
+function updateModStatus() {
+    fetch('/api/moderation/status')
+        .then(response => response.json())
+        .then(data => {
+            const ls = data.liquidsoap;
+            modBedEnabled = ls.bed_enabled;
+            modDuckEnabled = ls.ducking_active;
+
+            const bedBtn = document.getElementById('quick-bed-btn');
+            const duckBtn = document.getElementById('quick-duck-btn');
+
+            if (modBedEnabled) {
+                bedBtn.classList.add('active-bed');
+            } else {
+                bedBtn.classList.remove('active-bed');
+            }
+
+            if (modDuckEnabled) {
+                duckBtn.classList.add('active-duck');
+            } else {
+                duckBtn.classList.remove('active-duck');
+            }
+        })
+        .catch(() => {});
+}
+
+function quickToggleBed() {
+    fetch('/api/moderation/bed/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !modBedEnabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.enabled ? 'Musikbett aktiviert' : 'Musikbett deaktiviert', 'success');
+            updateModStatus();
+        }
+    });
+}
+
+function quickToggleDuck() {
+    fetch('/api/moderation/ducking/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !modDuckEnabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.active ? 'Ducking aktiviert' : 'Ducking deaktiviert', 'success');
+            updateModStatus();
+        }
+    });
+}
+
+// Update listener count
+function updateDashListeners() {
+    fetch('/api/status')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('dash-listeners').textContent = data.listeners || 0;
+        })
+        .catch(() => {});
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateModStatus();
+    updateDashListeners();
+    setInterval(updateModStatus, 3000);
+    setInterval(updateDashListeners, 5000);
+});
+</script>
+{% endblock %}

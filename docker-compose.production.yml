@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  radio-automation:
+    image: radio-automation:latest
+    container_name: radio-automation
+    ports:
+      # Web Admin Interface - Hier den gewuenschten externen Port eintragen
+      - "${WEB_PORT:-8080}:8080"
+      # Icecast Stream - Fuer Listener
+      - "${STREAM_PORT:-8000}:8000"
+      # Microphone Input (Live-Moderation via Butt/andere Software)
+      - "${MIC_PORT:-9999}:9999"
+    volumes:
+      # Medien-Verzeichnis - WICHTIG: Absoluten Pfad auf dem Server angeben!
+      # Beispiel: /var/www/vhosts/domain.de/radio/media:/media
+      - ${MEDIA_PATH:-./media}:/media
+      # Datenbank und Konfiguration - WICHTIG: Absoluten Pfad angeben!
+      # Beispiel: /var/www/vhosts/domain.de/radio/data:/data
+      - ${DATA_PATH:-./data}:/data
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-CHANGE_THIS_TO_A_SECURE_RANDOM_STRING}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-CHANGE_THIS_PASSWORD}
+      - TZ=${TIMEZONE:-Europe/Berlin}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

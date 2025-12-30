@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Rotation - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-repeat"></i> Rotationsregeln</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ruleModal" onclick="clearRuleForm()">
+            <i class="bi bi-plus-lg"></i> Neue Regel
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">Aktiv</th>
+                                <th>Name</th>
+                                <th>Regeltyp</th>
+                                <th>Kategorie</th>
+                                <th>Parameter</th>
+                                <th>Zeitraum</th>
+                                <th>Priorität</th>
+                                <th style="width: 120px;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in rules %}
+                            <tr data-rule-id="{{ rule.id }}">
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox"
+                                               {% if rule.is_active %}checked{% endif %}
+                                               onchange="toggleRule({{ rule.id }})">
+                                    </div>
+                                </td>
+                                <td><strong>{{ rule.name }}</strong></td>
+                                <td>
+                                    {% if rule.rule_type == 'after_songs' %}
+                                    <span class="badge bg-primary">Nach X Songs</span>
+                                    {% elif rule.rule_type == 'at_minute' %}
+                                    <span class="badge bg-info">Zur Minute</span>
+                                    {% elif rule.rule_type == 'interval' %}
+                                    <span class="badge bg-warning text-dark">Intervall</span>
+                                    {% elif rule.rule_type == 'time_range' %}
+                                    <span class="badge bg-success">Zeitraum</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-capitalize">{{ rule.category.replace('-', ' ') }}</span>
+                                </td>
+                                <td>
+                                    {% if rule.rule_type == 'after_songs' %}
+                                    Nach {{ rule.interval_value }} Songs
+                                    {% elif rule.rule_type == 'at_minute' %}
+                                    Minute {{ rule.minute_of_hour }}
+                                    {% elif rule.rule_type == 'interval' %}
+                                    Alle {{ rule.interval_value }} Minuten
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if rule.time_start and rule.time_end %}
+                                    {{ rule.time_start.strftime('%H:%M') }} - {{ rule.time_end.strftime('%H:%M') }}
+                                    {% else %}
+                                    Ganztags
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ rule.priority }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editRule({{ rule.id }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRule({{ rule.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">Keine Regeln vorhanden</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rule Modal -->
+<div class="modal fade" id="ruleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ruleModalTitle">Neue Regel erstellen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rule-form">
+                    <input type="hidden" id="rule-id" name="id">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="rule-name" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kategorie</label>
+                            <select class="form-select" id="rule-category" name="category" required>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category.replace('-', ' ')|title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Regeltyp</label>
+                            <select class="form-select" id="rule-type" name="rule_type" required onchange="updateRuleTypeFields()">
+                                <option value="after_songs">Nach X Songs</option>
+                                <option value="at_minute">Zur Minute (jede Stunde)</option>
+                                <option value="interval">Alle X Minuten</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Priorität</label>
+                            <input type="number" class="form-control" id="rule-priority" name="priority" value="0" min="0" max="100">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3" id="interval-value-row">
+                        <div class="col-md-6">
+                            <label class="form-label" id="interval-value-label">Anzahl Songs</label>
+                            <input type="number" class="form-control" id="rule-interval-value" name="interval_value" value="3" min="1">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3" id="minute-row" style="display: none;">
+                        <div class="col-md-6">
+                            <label class="form-label">Minute der Stunde (0-59)</label>
+                            <input type="number" class="form-control" id="rule-minute" name="minute_of_hour" value="0" min="0" max="59">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Startzeit (optional)</label>
+                            <input type="time" class="form-control" id="rule-time-start" name="time_start">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Endzeit (optional)</label>
+                            <input type="time" class="form-control" id="rule-time-end" name="time_end">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Wochentage</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-0" value="0" checked>
+                                <label class="form-check-label" for="day-0">Mo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-1" value="1" checked>
+                                <label class="form-check-label" for="day-1">Di</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-2" value="2" checked>
+                                <label class="form-check-label" for="day-2">Mi</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-3" value="3" checked>
+                                <label class="form-check-label" for="day-3">Do</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-4" value="4" checked>
+                                <label class="form-check-label" for="day-4">Fr</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-5" value="5" checked>
+                                <label class="form-check-label" for="day-5">Sa</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="day-6" value="6" checked>
+                                <label class="form-check-label" for="day-6">So</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveRule()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const rules = [{% for r in rules %}{{ r.to_dict()|tojson|safe }}{% if not loop.last %},{% endif %}{% endfor %}];
+const ruleModal = new bootstrap.Modal(document.getElementById('ruleModal'));
+
+function updateRuleTypeFields() {
+    const ruleType = document.getElementById('rule-type').value;
+    const intervalRow = document.getElementById('interval-value-row');
+    const minuteRow = document.getElementById('minute-row');
+    const intervalLabel = document.getElementById('interval-value-label');
+
+    if (ruleType === 'after_songs') {
+        intervalRow.style.display = 'flex';
+        minuteRow.style.display = 'none';
+        intervalLabel.textContent = 'Anzahl Songs';
+    } else if (ruleType === 'at_minute') {
+        intervalRow.style.display = 'none';
+        minuteRow.style.display = 'flex';
+    } else if (ruleType === 'interval') {
+        intervalRow.style.display = 'flex';
+        minuteRow.style.display = 'none';
+        intervalLabel.textContent = 'Minuten';
+    }
+}
+
+function clearRuleForm() {
+    document.getElementById('rule-form').reset();
+    document.getElementById('rule-id').value = '';
+    document.getElementById('ruleModalTitle').textContent = 'Neue Regel erstellen';
+    updateRuleTypeFields();
+
+    // Check all days
+    for (let i = 0; i < 7; i++) {
+        document.getElementById('day-' + i).checked = true;
+    }
+}
+
+function editRule(ruleId) {
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    document.getElementById('ruleModalTitle').textContent = 'Regel bearbeiten';
+    document.getElementById('rule-id').value = rule.id;
+    document.getElementById('rule-name').value = rule.name;
+    document.getElementById('rule-category').value = rule.category;
+    document.getElementById('rule-type').value = rule.rule_type;
+    document.getElementById('rule-priority').value = rule.priority;
+    document.getElementById('rule-interval-value').value = rule.interval_value || 3;
+    document.getElementById('rule-minute').value = rule.minute_of_hour || 0;
+    document.getElementById('rule-time-start').value = rule.time_start || '';
+    document.getElementById('rule-time-end').value = rule.time_end || '';
+
+    // Set days
+    const days = rule.days_of_week ? rule.days_of_week.split(',') : [];
+    for (let i = 0; i < 7; i++) {
+        document.getElementById('day-' + i).checked = days.includes(i.toString());
+    }
+
+    updateRuleTypeFields();
+    ruleModal.show();
+}
+
+function saveRule() {
+    const form = document.getElementById('rule-form');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    // Collect days
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        if (document.getElementById('day-' + i).checked) {
+            days.push(i);
+        }
+    }
+
+    const data = {
+        id: document.getElementById('rule-id').value || null,
+        name: document.getElementById('rule-name').value,
+        category: document.getElementById('rule-category').value,
+        rule_type: document.getElementById('rule-type').value,
+        priority: parseInt(document.getElementById('rule-priority').value),
+        interval_value: parseInt(document.getElementById('rule-interval-value').value),
+        minute_of_hour: parseInt(document.getElementById('rule-minute').value),
+        time_start: document.getElementById('rule-time-start').value || null,
+        time_end: document.getElementById('rule-time-end').value || null,
+        days_of_week: days.join(','),
+        is_active: true
+    };
+
+    fetch('/rotation/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Regel gespeichert', 'success');
+            ruleModal.hide();
+            location.reload();
+        } else {
+            showToast('Fehler beim Speichern', 'danger');
+        }
+    });
+}
+
+function toggleRule(ruleId) {
+    fetch('/rotation/toggle/' + ruleId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Status aktualisiert', 'success');
+            }
+        });
+}
+
+function deleteRule(ruleId) {
+    if (!confirm('Möchten Sie diese Regel wirklich löschen?')) return;
+
+    fetch('/rotation/delete/' + ruleId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`tr[data-rule-id="${ruleId}"]`).remove();
+                showToast('Regel gelöscht', 'success');
+            }
+        });
+}
+</script>
+{% endblock %}

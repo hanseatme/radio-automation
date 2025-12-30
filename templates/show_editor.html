@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}{% if show %}{{ show.name }} bearbeiten{% else %}Neue Sendung{% endif %} - Radio Automation{% endblock %}
+
+{% block extra_css %}
+<style>
+.file-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.file-item {
+    cursor: grab;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background: white;
+}
+.file-item:hover {
+    background: #f8f9fa;
+}
+.file-item.dragging {
+    opacity: 0.5;
+}
+.show-items {
+    min-height: 200px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+}
+.show-items.dragover {
+    border-color: #0d6efd;
+    background: #f0f7ff;
+}
+.show-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background: white;
+}
+.show-item .drag-handle {
+    cursor: grab;
+    margin-right: 12px;
+    color: #6c757d;
+}
+.show-item .remove-btn {
+    margin-left: auto;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.shows') }}">Sendungen</a></li>
+                <li class="breadcrumb-item active">{% if show %}{{ show.name }}{% else %}Neue Sendung{% endif %}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<form id="show-form">
+    <input type="hidden" id="show-id" value="{{ show.id if show else '' }}">
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label class="form-label">Sendungsname</label>
+            <input type="text" class="form-control" id="show-name" required
+                   value="{{ show.name if show else '' }}" placeholder="z.B. Morgensendung">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Beschreibung</label>
+            <input type="text" class="form-control" id="show-description"
+                   value="{{ show.description if show else '' }}" placeholder="Optionale Beschreibung">
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- File Browser -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-folder2-open"></i> Dateien</h5>
+                </div>
+                <div class="card-body">
+                    <select class="form-select mb-3" id="category-select" onchange="loadFiles()">
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category.replace('-', ' ')|title }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="file-list" id="file-list">
+                        <p class="text-muted text-center">Dateien werden geladen...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="col-md-2 d-flex align-items-center justify-content-center">
+            <div class="text-center text-muted">
+                <i class="bi bi-arrow-right fs-1"></i>
+                <p class="mb-0 small">Ziehen oder klicken</p>
+            </div>
+        </div>
+
+        <!-- Show Items -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-ol"></i> Sendungsablauf</h5>
+                    <span class="badge bg-primary" id="total-duration">0:00</span>
+                </div>
+                <div class="card-body">
+                    <div class="show-items" id="show-items"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
+                        <p class="text-muted text-center mb-0" id="empty-message">
+                            Dateien hierher ziehen oder anklicken
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Sendung speichern
+            </button>
+            <a href="{{ url_for('main.shows') }}" class="btn btn-secondary">
+                <i class="bi bi-x-lg"></i> Abbrechen
+            </a>
+            <button type="button" class="btn btn-outline-danger ms-auto" onclick="clearShowItems()">
+                <i class="bi bi-trash"></i> Alle entfernen
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let showItems = [];
+let allFiles = {};
+
+// Load files and existing show items on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadFiles();
+
+    // Load existing show items
+    {% if show %}
+    {% set show_data = show.to_dict(include_items=True) %}
+    const existingItems = {{ show_data['items']|tojson|safe }};
+    existingItems.forEach(item => {
+        if (item.audio_file) {
+            addShowItem(item.audio_file);
+        }
+    });
+    {% endif %}
+});
+
+async function loadFiles() {
+    const category = document.getElementById('category-select').value;
+    const fileList = document.getElementById('file-list');
+
+    try {
+        const response = await fetch('/api/files/' + category);
+        const files = await response.json();
+        allFiles[category] = files;
+
+        if (files.length === 0) {
+            fileList.innerHTML = '<p class="text-muted text-center">Keine Dateien in dieser Kategorie</p>';
+            return;
+        }
+
+        fileList.innerHTML = files.map(file => `
+            <div class="file-item" draggable="true"
+                 ondragstart="handleDragStart(event, ${file.id})"
+                 onclick="addFileToShow(${file.id})"
+                 data-file-id="${file.id}">
+                <i class="bi bi-music-note me-2"></i>
+                <span>${file.title || file.filename}</span>
+                <small class="text-muted ms-2">${file.duration_formatted}</small>
+            </div>
+        `).join('');
+    } catch (error) {
+        fileList.innerHTML = '<p class="text-danger text-center">Fehler beim Laden</p>';
+    }
+}
+
+function handleDragStart(event, fileId) {
+    event.dataTransfer.setData('text/plain', fileId);
+    event.target.classList.add('dragging');
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('dragover');
+}
+
+function handleDragLeave(event) {
+    event.currentTarget.classList.remove('dragover');
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('dragover');
+
+    const fileId = parseInt(event.dataTransfer.getData('text/plain'));
+    addFileToShow(fileId);
+}
+
+function addFileToShow(fileId) {
+    // Find file in loaded files
+    let file = null;
+    for (const category in allFiles) {
+        file = allFiles[category].find(f => f.id === fileId);
+        if (file) break;
+    }
+
+    if (!file) return;
+
+    addShowItem(file);
+}
+
+function addShowItem(file) {
+    showItems.push(file);
+    updateShowItemsDisplay();
+}
+
+function removeShowItem(index) {
+    showItems.splice(index, 1);
+    updateShowItemsDisplay();
+}
+
+function clearShowItems() {
+    showItems = [];
+    updateShowItemsDisplay();
+}
+
+function updateShowItemsDisplay() {
+    const container = document.getElementById('show-items');
+    const emptyMessage = document.getElementById('empty-message');
+
+    if (showItems.length === 0) {
+        emptyMessage.style.display = 'block';
+        container.innerHTML = '';
+        container.appendChild(emptyMessage);
+        document.getElementById('total-duration').textContent = '0:00';
+        return;
+    }
+
+    container.innerHTML = showItems.map((item, index) => `
+        <div class="show-item" data-index="${index}">
+            <span class="drag-handle"><i class="bi bi-grip-vertical"></i></span>
+            <span class="badge bg-secondary me-2">${index + 1}</span>
+            <span class="text-capitalize badge bg-light text-dark me-2">${item.category.replace('-', ' ')}</span>
+            <span>${item.title || item.filename}</span>
+            <small class="text-muted ms-2">${item.duration_formatted}</small>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeShowItem(${index})">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    `).join('');
+
+    // Calculate total duration
+    const totalSeconds = showItems.reduce((sum, item) => sum + (item.duration || 0), 0);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    let durationStr = '';
+    if (hours > 0) {
+        durationStr = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+        durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    document.getElementById('total-duration').textContent = durationStr;
+
+    // Make items sortable
+    initSortable();
+}
+
+function initSortable() {
+    const container = document.getElementById('show-items');
+    let draggedItem = null;
+
+    container.querySelectorAll('.show-item').forEach(item => {
+        item.draggable = true;
+
+        item.addEventListener('dragstart', (e) => {
+            draggedItem = item;
+            item.classList.add('dragging');
+        });
+
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            draggedItem = null;
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (draggedItem && draggedItem !== item) {
+                const rect = item.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (e.clientY < midpoint) {
+                    item.parentNode.insertBefore(draggedItem, item);
+                } else {
+                    item.parentNode.insertBefore(draggedItem, item.nextSibling);
+                }
+            }
+        });
+    });
+}
+
+// Form submission
+document.getElementById('show-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('show-name').value;
+    if (!name) {
+        showToast('Bitte geben Sie einen Namen ein', 'warning');
+        return;
+    }
+
+    // Get current order from DOM
+    const orderedItems = [];
+    document.querySelectorAll('.show-item').forEach(item => {
+        const index = parseInt(item.dataset.index);
+        orderedItems.push(showItems[index]);
+    });
+
+    const data = {
+        id: document.getElementById('show-id').value || null,
+        name: name,
+        description: document.getElementById('show-description').value,
+        items: orderedItems.map(item => ({ audio_file_id: item.id }))
+    };
+
+    try {
+        const response = await fetch('/shows/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('Sendung gespeichert', 'success');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("main.shows") }}';
+            }, 1000);
+        } else {
+            showToast('Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
+</script>
+{% endblock %}

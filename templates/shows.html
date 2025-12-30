@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Sendungen - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-collection-play"></i> Sendungen</h2>
+        <a href="{{ url_for('main.edit_show') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Neue Sendung
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    {% for show in shows %}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ show.name }}</h5>
+                <p class="card-text text-muted">{{ show.description or 'Keine Beschreibung' }}</p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-primary">
+                        <i class="bi bi-music-note-list"></i> {{ show.items.count() }} Elemente
+                    </span>
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-clock"></i> {{ show.format_duration() }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 d-flex gap-2">
+                <button class="btn btn-sm btn-success flex-grow-1" onclick="playShow({{ show.id }})">
+                    <i class="bi bi-play-fill"></i> Abspielen
+                </button>
+                <a href="{{ url_for('main.edit_show', show_id=show.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteShow({{ show.id }})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-collection-play fs-1 text-muted"></i>
+                <p class="mt-3 text-muted">Keine Sendungen vorhanden</p>
+                <a href="{{ url_for('main.edit_show') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Erste Sendung erstellen
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function playShow(showId) {
+    if (!confirm('Möchten Sie diese Sendung jetzt zur Warteschlange hinzufügen?')) return;
+
+    fetch('/api/shows/' + showId + '/play', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.items_queued + ' Elemente zur Warteschlange hinzugefügt', 'success');
+            } else {
+                showToast('Fehler beim Starten der Sendung', 'danger');
+            }
+        });
+}
+
+function deleteShow(showId) {
+    if (!confirm('Möchten Sie diese Sendung wirklich löschen?')) return;
+
+    fetch('/shows/delete/' + showId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showToast('Fehler beim Löschen', 'danger');
+            }
+        });
+}
+</script>
+{% endblock %}

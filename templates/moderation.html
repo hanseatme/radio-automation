@@ -1,0 +1,1318 @@
+{% extends "base.html" %}
+
+{% block title %}Studio - RadioPro{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== STUDIO COMMAND CENTER ===== */
+.command-center {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.command-center-header {
+    background: var(--primary-gradient);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.on-air-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+}
+
+.on-air-dot {
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+}
+
+.listener-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.15);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    color: white;
+}
+
+/* Main content grid */
+.command-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+/* Track Panel */
+.track-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.track-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.track-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.track-icon i {
+    color: white;
+    font-size: 1.5rem;
+}
+
+.track-details {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.track-title {
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+}
+
+.track-artist {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-bar-slim {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--primary-gradient);
+    border-radius: 4px;
+    transition: width 0.5s linear;
+}
+
+.time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.time-display {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.countdown-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.countdown-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+}
+
+.countdown-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--primary);
+}
+
+.skip-btn-row {
+    margin-top: 0.75rem;
+}
+
+/* Audio Controls Panel */
+.audio-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.audio-panel-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.audio-control-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.5rem;
+}
+
+.audio-control-item.active {
+    background: var(--success-bg);
+    border-color: var(--success);
+}
+
+.audio-control-item .ctrl-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.audio-control-item .ctrl-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    width: 45px;
+    flex-shrink: 0;
+}
+
+.audio-control-item .ctrl-slider {
+    flex: 1;
+    min-width: 60px;
+    height: 6px;
+    -webkit-appearance: none;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    outline: none;
+}
+
+.audio-control-item .ctrl-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.audio-control-item .ctrl-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.audio-control-item .ctrl-toggle {
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.duck-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.duck-indicator.active {
+    background: var(--warning);
+    box-shadow: 0 0 8px var(--warning);
+}
+
+/* Jingles Panel */
+.jingles-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.jingles-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.jingles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.jingle-btn {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    transition: all 0.15s ease;
+    position: relative;
+    padding: 0.5rem;
+    border: none;
+    min-height: 70px;
+}
+
+.jingle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.jingle-btn:active {
+    transform: scale(0.95);
+}
+
+.jingle-btn.empty {
+    background: var(--bg-card);
+    border: 2px dashed var(--border-color);
+    color: var(--text-muted);
+}
+
+.jingle-btn.empty:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.jingle-hotkey {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.35rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+    color: white;
+}
+
+.jingle-icon {
+    font-size: 1.25rem;
+}
+
+.jingle-name {
+    font-size: 0.65rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 0.25rem;
+}
+
+.jingle-config-btn {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    opacity: 0;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.3rem;
+    background: rgba(255,255,255,0.9);
+    color: var(--text-primary);
+    border-radius: 3px;
+    transition: opacity 0.15s;
+    border: none;
+}
+
+.jingle-btn:hover .jingle-config-btn {
+    opacity: 1;
+}
+
+/* ===== MODERATION SECTION ===== */
+.moderation-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.moderation-header {
+    background: var(--bg-secondary);
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.moderation-header h6 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.moderation-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+
+/* Live Mic Panel */
+.live-panel {
+    padding: 1.25rem;
+    border-right: 1px solid var(--border-color);
+}
+
+.panel-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mic-btn-large {
+    width: 100%;
+    height: 70px;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+    border: 3px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.mic-btn-large i {
+    font-size: 1.5rem;
+}
+
+.mic-btn-large.active {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.25), 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+.level-meter {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.level-meter-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success) 0%, var(--warning) 70%, var(--danger) 100%);
+    transition: width 0.05s ease;
+}
+
+.mic-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mic-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.mic-status {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-top: 0.75rem;
+    text-align: center;
+}
+
+/* Recording Panel */
+.record-panel {
+    padding: 1.25rem;
+}
+
+.record-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.record-btn-large {
+    flex: 1;
+    height: 70px;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.record-btn-large.recording {
+    animation: recording-pulse 1s infinite;
+}
+
+@keyframes recording-pulse {
+    0%, 100% { background: var(--danger); }
+    50% { background: #B91C1C; }
+}
+
+.record-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: var(--danger);
+    color: white;
+    padding: 0 1rem;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-family: monospace;
+    font-size: 1.1rem;
+    min-width: 90px;
+}
+
+.record-timer i {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.record-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+}
+
+.preview-box {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+}
+
+.preview-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.preview-row .progress {
+    flex-grow: 1;
+    height: 4px;
+}
+
+.no-recording {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-muted);
+}
+
+.no-recording i {
+    font-size: 2rem;
+    opacity: 0.3;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Shortcuts Bar */
+.shortcuts-bar {
+    background: var(--bg-secondary);
+    padding: 0.5rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.shortcuts-bar .label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.shortcut-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+}
+
+.shortcut-tag kbd {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-family: monospace;
+    font-weight: 600;
+    font-size: 0.65rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .command-grid {
+        grid-template-columns: 1fr;
+    }
+    .moderation-body {
+        grid-template-columns: 1fr;
+    }
+    .live-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- COMMAND CENTER -->
+<div class="command-center">
+    <div class="command-center-header">
+        <div class="on-air-badge">
+            <span class="on-air-dot"></span>
+            <span>ON AIR</span>
+        </div>
+        <div class="listener-badge">
+            <i class="bi bi-headphones"></i>
+            <span id="studio-listener-count">0</span> Listeners
+        </div>
+    </div>
+
+    <div class="command-grid">
+        <!-- Left Column: Track + Audio Controls -->
+        <div>
+            <!-- Track Info -->
+            <div class="track-panel mb-3">
+                <div class="track-info-row">
+                    <div class="track-icon">
+                        <i class="bi bi-music-note-beamed"></i>
+                    </div>
+                    <div class="track-details">
+                        <div class="track-title" id="now-playing-title">Lade...</div>
+                        <div class="track-artist" id="now-playing-artist"></div>
+                    </div>
+                </div>
+                <div class="progress-bar-slim">
+                    <div class="progress-bar-fill" id="track-progress" style="width: 0%"></div>
+                </div>
+                <div class="time-row">
+                    <div class="time-display">
+                        <span id="track-elapsed">0:00</span> / <span id="track-duration">0:00</span>
+                    </div>
+                    <div class="countdown-box">
+                        <div class="countdown-label">Verbleibend</div>
+                        <div class="countdown-value" id="next-track-countdown">--:--</div>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="skipTrack()">
+                        <i class="bi bi-skip-forward-fill me-1"></i> Skip
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Controls -->
+            <div class="audio-panel">
+                <div class="audio-panel-title">
+                    <i class="bi bi-sliders"></i> Audio Controls
+                </div>
+
+                <!-- Bed -->
+                <div class="audio-control-item" id="bed-control-row">
+                    <div class="ctrl-icon text-success"><i class="bi bi-music-note-list"></i></div>
+                    <span class="ctrl-label">Bed</span>
+                    <input type="range" class="ctrl-slider" id="bed-volume" min="0" max="100" value="{{ (settings.bed_volume * 100)|int }}" oninput="updateBedVolume(this.value)">
+                    <span class="ctrl-value" id="bed-volume-value">{{ (settings.bed_volume * 100)|int }}%</span>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input ctrl-toggle" type="checkbox" id="bed-toggle" {% if settings.bed_enabled %}checked{% endif %} onchange="toggleBed()">
+                    </div>
+                </div>
+
+                <!-- Duck -->
+                <div class="audio-control-item">
+                    <div class="ctrl-icon text-warning"><i class="bi bi-volume-down-fill"></i></div>
+                    <span class="ctrl-label">Duck</span>
+                    <input type="range" class="ctrl-slider" id="duck-level" min="0" max="100" value="{{ (settings.bed_ducking_level * 100)|int }}" oninput="updateDuckLevel(this.value)">
+                    <span class="ctrl-value" id="duck-level-value">{{ (settings.bed_ducking_level * 100)|int }}%</span>
+                    <span class="duck-indicator" id="ducking-indicator"></span>
+                    <button class="btn btn-warning btn-sm py-0 px-2" id="duck-btn" onclick="toggleDucking()">
+                        <i class="bi bi-volume-down-fill"></i>
+                    </button>
+                </div>
+
+                <!-- Jingle -->
+                <div class="audio-control-item">
+                    <div class="ctrl-icon text-info"><i class="bi bi-megaphone-fill"></i></div>
+                    <span class="ctrl-label">Jingle</span>
+                    <input type="range" class="ctrl-slider" id="jingle-volume" min="0" max="100" value="{{ (settings.jingle_volume * 100)|int }}" oninput="updateJingleVolume(this.value)">
+                    <span class="ctrl-value" id="jingle-volume-value">{{ (settings.jingle_volume * 100)|int }}%</span>
+                </div>
+
+                <!-- Mic -->
+                <div class="audio-control-item">
+                    <div class="ctrl-icon text-danger"><i class="bi bi-mic-fill"></i></div>
+                    <span class="ctrl-label">Mic</span>
+                    <input type="range" class="ctrl-slider" id="mic-volume" min="0" max="100" value="100" oninput="updateMicVolume(this.value)">
+                    <span class="ctrl-value" id="mic-volume-value">100%</span>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input ctrl-toggle" type="checkbox" id="mic-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %} onchange="toggleMicAutoDuck()" title="Auto-Duck">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Jingles -->
+        <div class="jingles-panel">
+            <div class="jingles-title">
+                <i class="bi bi-grid-3x3-gap-fill"></i> Instant Jingles
+                <span class="ms-auto badge bg-light text-dark" style="font-size:0.65rem;">
+                    <i class="bi bi-keyboard"></i> 1-9
+                </span>
+            </div>
+            <div class="jingles-grid">
+                {% for jingle in jingles %}
+                {% if jingle.audio_file %}
+                <button class="jingle-btn btn btn-{{ jingle.color }}" onclick="playJingle({{ jingle.slot_number }})" title="{{ jingle.audio_file.filename }}">
+                    <span class="jingle-hotkey">{{ jingle.slot_number }}</span>
+                    <span class="jingle-config-btn" onclick="event.stopPropagation(); configureJingle({{ jingle.slot_number }})">
+                        <i class="bi bi-gear-fill"></i>
+                    </span>
+                    <i class="bi bi-play-fill jingle-icon"></i>
+                    <span class="jingle-name">{{ jingle.label or jingle.audio_file.title or 'Jingle ' ~ jingle.slot_number }}</span>
+                </button>
+                {% else %}
+                <button class="jingle-btn empty" onclick="configureJingle({{ jingle.slot_number }})">
+                    <span class="jingle-hotkey">{{ jingle.slot_number }}</span>
+                    <i class="bi bi-plus-lg jingle-icon"></i>
+                    <span class="jingle-name">Slot {{ jingle.slot_number }}</span>
+                </button>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODERATION SECTION -->
+<div class="moderation-section">
+    <div class="moderation-header">
+        <i class="bi bi-broadcast text-primary"></i>
+        <h6>Live Moderation & Aufnahme</h6>
+    </div>
+
+    <div class="moderation-body">
+        <!-- Live Mic -->
+        <div class="live-panel">
+            <div class="panel-title">
+                <i class="bi bi-mic-fill text-danger"></i> Live Mikrofon
+            </div>
+            <button class="mic-btn-large" id="mic-btn" onclick="toggleBrowserMic()">
+                <i class="bi bi-mic-fill"></i>
+                <span id="mic-btn-text">Mikrofon aktivieren</span>
+            </button>
+
+            <div class="level-meter">
+                <div class="level-meter-fill" id="mic-level" style="width: 0%"></div>
+            </div>
+
+            <div class="mic-options">
+                <div class="mic-option">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="live-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %}>
+                    </div>
+                    <label for="live-auto-duck">Auto-Duck bei Live</label>
+                </div>
+            </div>
+
+            <div class="mic-status" id="mic-status-text">Klicke um Mikrofon zu aktivieren</div>
+        </div>
+
+        <!-- Recording -->
+        <div class="record-panel">
+            <div class="panel-title">
+                <i class="bi bi-record-circle text-danger"></i> Moderation aufnehmen
+            </div>
+            <div class="record-controls">
+                <button class="record-btn-large btn btn-danger" id="record-btn" onclick="toggleRecording()">
+                    <i class="bi bi-record-circle" id="record-icon"></i>
+                    <span id="record-btn-text">Aufnahme starten</span>
+                </button>
+                <div id="recording-timer-box" class="record-timer" style="display: none;">
+                    <i class="bi bi-record-fill"></i>
+                    <span id="recording-timer">0:00</span>
+                </div>
+            </div>
+
+            <div class="level-meter">
+                <div class="level-meter-fill" id="recording-level" style="width: 0%"></div>
+            </div>
+
+            <div class="record-option">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="record-with-bed" checked>
+                </div>
+                <label for="record-with-bed">Mit Musikbett aufnehmen</label>
+            </div>
+
+            <div id="recorded-preview" class="preview-box" style="display: none;">
+                <div class="preview-row">
+                    <i class="bi bi-file-earmark-music text-primary"></i>
+                    <span id="recorded-duration" class="small fw-bold">0:00</span>
+                    <div class="progress flex-grow-1" style="height: 4px;">
+                        <div class="progress-bar" id="preview-progress" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="playRecordedPreview()">
+                        <i class="bi bi-play-fill" id="preview-play-icon"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteRecording()">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <button class="btn btn-success btn-sm w-100 mt-2" onclick="queueRecordedModeration()">
+                    <i class="bi bi-plus-circle me-1"></i> In Playlist einfuegen
+                </button>
+            </div>
+
+            <div id="no-recording-msg" class="no-recording">
+                <i class="bi bi-mic"></i>
+                <span class="small">Keine Aufnahme vorhanden</span>
+            </div>
+
+            <div id="queued-moderations-box" class="mt-2" style="display: none;">
+                <div class="small text-muted mb-1">Wartend:</div>
+                <div class="list-group list-group-flush small" id="queued-moderations-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="shortcuts-bar">
+        <span class="label">Shortcuts:</span>
+        <span class="shortcut-tag"><kbd>M</kbd> Mic</span>
+        <span class="shortcut-tag"><kbd>R</kbd> Record</span>
+        <span class="shortcut-tag"><kbd>B</kbd> Bed</span>
+        <span class="shortcut-tag"><kbd>D</kbd> Duck</span>
+        <span class="shortcut-tag"><kbd>1-9</kbd> Jingles</span>
+    </div>
+</div>
+
+<!-- Jingle Config Modal -->
+<div class="modal fade" id="jingleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">
+                    <i class="bi bi-music-note-beamed text-primary me-1"></i>
+                    Jingle Slot
+                </h6>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-2">
+                <input type="hidden" id="config-slot">
+                <div class="mb-2">
+                    <label class="form-label small mb-1">Audio-Datei</label>
+                    <select class="form-select form-select-sm" id="config-file">
+                        <option value="">-- Keine --</option>
+                        {% for file in all_files %}
+                        <option value="{{ file.id }}">[{{ file.category }}] {{ file.title or file.filename }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1">Label</label>
+                    <input type="text" class="form-control form-control-sm" id="config-label" placeholder="Beschriftung">
+                </div>
+                <div class="mb-0">
+                    <label class="form-label small mb-1">Farbe</label>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <button type="button" class="btn btn-primary color-option p-0" data-color="primary" style="width:28px;height:28px;"></button>
+                        <button type="button" class="btn btn-success color-option p-0" data-color="success" style="width:28px;height:28px;"></button>
+                        <button type="button" class="btn btn-danger color-option p-0" data-color="danger" style="width:28px;height:28px;"></button>
+                        <button type="button" class="btn btn-warning color-option p-0" data-color="warning" style="width:28px;height:28px;"></button>
+                        <button type="button" class="btn btn-info color-option p-0" data-color="info" style="width:28px;height:28px;"></button>
+                        <button type="button" class="btn btn-secondary color-option p-0" data-color="secondary" style="width:28px;height:28px;"></button>
+                    </div>
+                    <input type="hidden" id="config-color" value="primary">
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="saveJingleConfig()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const jingleModal = new bootstrap.Modal(document.getElementById('jingleModal'));
+let duckingActive = false;
+let micEnabled = false;
+
+let browserMicState = { active: false, mediaRecorder: null, audioContext: null, analyser: null, stream: null };
+let trackState = { title: '', artist: '', duration: 0, elapsed: 0, remaining: 0, lastUpdate: Date.now(), updateInterval: null };
+let recordingState = { active: false, mediaRecorder: null, audioContext: null, analyser: null, stream: null, chunks: [], blob: null, audioUrl: null, startTime: null, timerInterval: null, previewAudio: null, bedAudio: null, bedGain: null };
+
+const micSocket = io();
+
+micSocket.on('connect', () => console.log('Socket connected'));
+micSocket.on('mic_status', data => {
+    if (data.status === 'started') { browserMicState.active = true; updateBrowserMicUI(true); updateMicStatusText('LIVE - Mikrofon aktiv!'); }
+    else if (data.status === 'stopped') { browserMicState.active = false; updateBrowserMicUI(false); updateMicStatusText('Mikrofon gestoppt'); }
+    else if (data.status === 'error') { browserMicState.active = false; updateBrowserMicUI(false); updateMicStatusText('Fehler: ' + data.message); }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateStatus();
+    setInterval(updateStatus, 2000);
+    updateTrackProgress();
+    setInterval(updateTrackProgress, 10000);
+    updateListenerCount();
+    setInterval(updateListenerCount, 5000);
+    micSocket.emit('mic_status_request');
+
+    document.querySelectorAll('.color-option').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.color-option').forEach(b => b.style.outline = 'none');
+            this.style.outline = '3px solid var(--primary)';
+            this.style.outlineOffset = '2px';
+            document.getElementById('config-color').value = this.dataset.color;
+        });
+    });
+});
+
+document.addEventListener('keydown', function(e) {
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    const key = parseInt(e.key);
+    if (key >= 1 && key <= 9) playJingle(key);
+    if (e.key.toLowerCase() === 'd') toggleDucking();
+    if (e.key.toLowerCase() === 'b') toggleBed();
+    if (e.key.toLowerCase() === 'm') toggleBrowserMic();
+    if (e.key.toLowerCase() === 'r') toggleRecording();
+});
+
+function updateListenerCount() {
+    fetch('/api/status').then(r => r.json()).then(data => {
+        document.getElementById('studio-listener-count').textContent = data.listeners || 0;
+    }).catch(() => {});
+}
+
+function updateStatus() {
+    fetch('/api/moderation/status').then(r => r.json()).then(data => {
+        const ls = data.liquidsoap;
+        duckingActive = ls.ducking_active;
+        micEnabled = ls.mic_enabled;
+
+        document.getElementById('ducking-indicator').className = 'duck-indicator ' + (duckingActive ? 'active' : '');
+        const duckBtn = document.getElementById('duck-btn');
+        duckBtn.className = duckingActive ? 'btn btn-success btn-sm py-0 px-2' : 'btn btn-warning btn-sm py-0 px-2';
+
+        const bedToggle = document.getElementById('bed-toggle');
+        const bedRow = document.getElementById('bed-control-row');
+        bedToggle.checked = ls.bed_enabled;
+        bedRow.className = 'audio-control-item' + (ls.bed_enabled ? ' active' : '');
+
+        if (ls.mic_volume !== undefined) {
+            document.getElementById('mic-volume').value = Math.round(ls.mic_volume * 100);
+            document.getElementById('mic-volume-value').textContent = Math.round(ls.mic_volume * 100) + '%';
+        }
+    });
+}
+
+async function toggleBrowserMic() {
+    if (browserMicState.active) stopBrowserMic();
+    else await startBrowserMic();
+}
+
+async function startBrowserMic() {
+    try {
+        if (!window.isSecureContext) { updateMicStatusText('HTTPS erforderlich'); return; }
+        updateMicStatusText('Zugriff wird angefragt...');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 44100 } });
+        browserMicState.stream = stream;
+        micSocket.emit('mic_start');
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        browserMicState.audioContext = audioContext;
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        browserMicState.analyser = analyser;
+        const processor = audioContext.createScriptProcessor(2048, 1, 1);
+        processor.onaudioprocess = function(e) {
+            if (!browserMicState.active) return;
+            const inputData = e.inputBuffer.getChannelData(0);
+            const pcmData = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                const s = Math.max(-1, Math.min(1, inputData[i]));
+                pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            micSocket.emit('mic_audio', new Uint8Array(pcmData.buffer));
+        };
+        source.connect(analyser);
+        analyser.connect(processor);
+        processor.connect(audioContext.destination);
+        browserMicState.processor = processor;
+        browserMicState.source = source;
+        browserMicState.active = true;
+        updateBrowserMicUI(true);
+        updateMicStatusText('LIVE - Mikrofon aktiv!');
+        showToast('Mikrofon LIVE!', 'danger');
+        updateLevelMeter();
+    } catch (error) {
+        updateMicStatusText('Fehler: ' + error.message);
+        showToast('Mic-Fehler', 'danger');
+    }
+}
+
+function stopBrowserMic() {
+    if (browserMicState.processor) browserMicState.processor.disconnect();
+    if (browserMicState.analyser) browserMicState.analyser.disconnect();
+    if (browserMicState.source) browserMicState.source.disconnect();
+    if (browserMicState.stream) browserMicState.stream.getTracks().forEach(t => t.stop());
+    if (browserMicState.audioContext) browserMicState.audioContext.close();
+    micSocket.emit('mic_stop');
+    browserMicState.active = false;
+    browserMicState.audioContext = null;
+    document.getElementById('mic-level').style.width = '0%';
+    updateBrowserMicUI(false);
+    updateMicStatusText('Mikrofon gestoppt');
+    showToast('Mikrofon aus', 'success');
+}
+
+function updateLevelMeter() {
+    if (!browserMicState.active || !browserMicState.analyser) return;
+    const dataArray = new Uint8Array(browserMicState.analyser.frequencyBinCount);
+    function update() {
+        if (!browserMicState.active) return;
+        browserMicState.analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const level = Math.min(100, (sum / dataArray.length / 128) * 100);
+        document.getElementById('mic-level').style.width = level + '%';
+        requestAnimationFrame(update);
+    }
+    update();
+}
+
+function updateBrowserMicUI(active) {
+    const btn = document.getElementById('mic-btn');
+    const text = document.getElementById('mic-btn-text');
+    btn.className = 'mic-btn-large' + (active ? ' active' : '');
+    text.textContent = active ? 'Mikrofon deaktivieren' : 'Mikrofon aktivieren';
+}
+
+function updateMicStatusText(text) { document.getElementById('mic-status-text').textContent = text; }
+function updateMicVolume(v) { document.getElementById('mic-volume-value').textContent = v + '%'; clearTimeout(window.micVT); window.micVT = setTimeout(() => fetch('/api/moderation/mic/volume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volume: v / 100 }) }), 200); }
+function toggleMicAutoDuck() { fetch('/api/moderation/mic/auto-duck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: document.getElementById('mic-auto-duck').checked }) }); }
+function toggleBed() { fetch('/api/moderation/bed/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: document.getElementById('bed-toggle').checked }) }).then(r => r.json()).then(d => { if (d.success) { showToast(d.enabled ? 'Musikbett an' : 'Musikbett aus', 'success'); updateStatus(); } }); }
+function updateBedVolume(v) { document.getElementById('bed-volume-value').textContent = v + '%'; clearTimeout(window.bedVT); window.bedVT = setTimeout(() => fetch('/api/moderation/bed/volume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volume: v / 100 }) }), 200); }
+function updateDuckLevel(v) { document.getElementById('duck-level-value').textContent = v + '%'; clearTimeout(window.duckVT); window.duckVT = setTimeout(() => fetch('/api/moderation/ducking/level', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ level: v / 100 }) }), 200); }
+function updateJingleVolume(v) { document.getElementById('jingle-volume-value').textContent = v + '%'; clearTimeout(window.jingleVT); window.jingleVT = setTimeout(() => fetch('/api/moderation/jingle/volume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volume: v / 100 }) }), 200); }
+function toggleDucking() { fetch('/api/moderation/ducking/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !duckingActive }) }).then(r => r.json()).then(d => { if (d.success) { duckingActive = d.active; updateStatus(); showToast(d.active ? 'Ducking an' : 'Ducking aus', 'success'); } }); }
+
+function playJingle(slot) { fetch('/api/moderation/jingles/' + slot + '/play', { method: 'POST' }).then(r => r.json()).then(d => { if (d.success) showToast('Jingle: ' + d.played, 'success'); else if (d.error) showToast(d.error, 'warning'); }); }
+
+function configureJingle(slot) {
+    document.getElementById('config-slot').value = slot;
+    fetch('/api/moderation/jingles/' + slot).then(r => r.json()).then(d => {
+        document.getElementById('config-file').value = d.audio_file_id || '';
+        document.getElementById('config-label').value = d.label || '';
+        document.getElementById('config-color').value = d.color || 'primary';
+        document.querySelectorAll('.color-option').forEach(b => { b.style.outline = b.dataset.color === (d.color || 'primary') ? '3px solid var(--primary)' : 'none'; b.style.outlineOffset = '2px'; });
+        jingleModal.show();
+    });
+}
+
+function saveJingleConfig() {
+    const slot = document.getElementById('config-slot').value;
+    const fileId = document.getElementById('config-file').value;
+    fetch('/api/moderation/jingles/' + slot, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio_file_id: fileId ? parseInt(fileId) : null, label: document.getElementById('config-label').value, color: document.getElementById('config-color').value }) }).then(r => r.json()).then(d => { if (d.success) { jingleModal.hide(); showToast('Gespeichert', 'success'); location.reload(); } });
+}
+
+function updateTrackProgress() {
+    fetch('/api/nowplaying').then(r => r.json()).then(d => {
+        document.getElementById('now-playing-title').textContent = d.title || 'Kein Track';
+        document.getElementById('now-playing-artist').textContent = d.artist || '';
+        trackState = { ...trackState, title: d.title, artist: d.artist, duration: d.duration || 0, elapsed: d.elapsed || 0, remaining: d.remaining || 0, lastUpdate: Date.now() };
+        if (trackState.updateInterval) clearInterval(trackState.updateInterval);
+        trackState.updateInterval = setInterval(updateProgressBar, 1000);
+        updateProgressBar();
+    }).catch(() => {});
+}
+
+function updateProgressBar() {
+    if (!trackState.duration) {
+        document.getElementById('track-progress').style.width = '0%';
+        document.getElementById('track-elapsed').textContent = '0:00';
+        document.getElementById('track-duration').textContent = '0:00';
+        document.getElementById('next-track-countdown').textContent = '--:--';
+        return;
+    }
+    const elapsed = Math.min(trackState.elapsed + (Date.now() - trackState.lastUpdate) / 1000, trackState.duration);
+    const remaining = Math.max(0, trackState.duration - elapsed);
+    document.getElementById('track-progress').style.width = (elapsed / trackState.duration * 100) + '%';
+    document.getElementById('track-elapsed').textContent = formatTime(elapsed);
+    document.getElementById('track-duration').textContent = formatTime(trackState.duration);
+    document.getElementById('next-track-countdown').textContent = formatTime(remaining);
+}
+
+function formatTime(s) { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return m + ':' + (sec < 10 ? '0' : '') + sec; }
+function skipTrack() { fetch('/api/skip', { method: 'POST' }).then(r => r.json()).then(d => { if (d.success) { showToast('Skip', 'success'); setTimeout(updateTrackProgress, 500); } }); }
+
+async function toggleRecording() { if (recordingState.active) stopRecording(); else await startRecording(); }
+
+async function startRecording() {
+    try {
+        if (!window.isSecureContext) {
+            showToast('Aufnahme benoetigt HTTPS', 'warning');
+            return;
+        }
+
+        const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 44100 }
+        });
+
+        recordingState.stream = micStream;
+        recordingState.chunks = [];
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        recordingState.audioContext = audioContext;
+
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        recordingState.analyser = analyser;
+
+        const micSource = audioContext.createMediaStreamSource(micStream);
+        const recordingDest = audioContext.createMediaStreamDestination();
+
+        const withBed = document.getElementById('record-with-bed').checked;
+
+        if (withBed) {
+            try {
+                const bedResponse = await fetch('/api/moderation/bed/current');
+                const bedData = await bedResponse.json();
+
+                if (bedData.file) {
+                    const bedAudio = new Audio(bedData.file);
+                    bedAudio.loop = true;
+                    bedAudio.crossOrigin = 'anonymous';
+
+                    await new Promise((resolve, reject) => {
+                        bedAudio.oncanplaythrough = () => resolve();
+                        bedAudio.onerror = (e) => reject(e);
+                        bedAudio.load();
+                        setTimeout(() => reject(new Error('Timeout')), 10000);
+                    });
+
+                    const bedSource = audioContext.createMediaElementSource(bedAudio);
+                    const micGain = audioContext.createGain();
+                    micGain.gain.value = 1.0;
+                    const bedGain = audioContext.createGain();
+                    bedGain.gain.value = 0.15;
+
+                    micSource.connect(micGain);
+                    micGain.connect(analyser);
+                    micGain.connect(recordingDest);
+                    bedSource.connect(bedGain);
+                    bedGain.connect(recordingDest);
+                    bedGain.connect(audioContext.destination);
+
+                    await bedAudio.play();
+                    recordingState.bedAudio = bedAudio;
+                    recordingState.bedGain = bedGain;
+                    showToast('Aufnahme mit Musikbett', 'info');
+                } else {
+                    micSource.connect(analyser);
+                    micSource.connect(recordingDest);
+                    showToast('Kein Musikbett - nur Mikrofon', 'warning');
+                }
+            } catch (bedError) {
+                console.error('Bed error:', bedError);
+                micSource.connect(analyser);
+                micSource.connect(recordingDest);
+                showToast('Musikbett nicht verfuegbar', 'warning');
+            }
+        } else {
+            micSource.connect(analyser);
+            micSource.connect(recordingDest);
+        }
+
+        const mediaRecorder = new MediaRecorder(recordingDest.stream, { mimeType: 'audio/webm;codecs=opus' });
+
+        mediaRecorder.ondataavailable = function(e) {
+            if (e.data.size > 0) recordingState.chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function() {
+            const blob = new Blob(recordingState.chunks, { type: 'audio/webm' });
+            recordingState.blob = blob;
+            recordingState.audioUrl = URL.createObjectURL(blob);
+            showRecordedPreview();
+        };
+
+        mediaRecorder.start(100);
+        recordingState.mediaRecorder = mediaRecorder;
+        recordingState.active = true;
+        recordingState.startTime = Date.now();
+
+        recordingState.timerInterval = setInterval(updateRecordingTimer, 100);
+        updateRecordingLevelMeter();
+        updateRecordingUI(true);
+        showToast('Aufnahme laeuft...', 'danger');
+
+    } catch (error) {
+        console.error('Recording error:', error);
+        showToast('Aufnahme-Fehler: ' + error.message, 'danger');
+    }
+}
+
+function stopRecording() {
+    if (recordingState.mediaRecorder && recordingState.active) {
+        recordingState.mediaRecorder.stop();
+    }
+    if (recordingState.bedAudio) {
+        recordingState.bedAudio.pause();
+        recordingState.bedAudio = null;
+    }
+    if (recordingState.stream) {
+        recordingState.stream.getTracks().forEach(track => track.stop());
+    }
+    if (recordingState.audioContext) {
+        recordingState.audioContext.close();
+        recordingState.audioContext = null;
+    }
+    if (recordingState.timerInterval) {
+        clearInterval(recordingState.timerInterval);
+        recordingState.timerInterval = null;
+    }
+
+    recordingState.active = false;
+    updateRecordingUI(false);
+    showToast('Aufnahme gestoppt', 'success');
+}
+
+function updateRecordingTimer() { if (recordingState.active && recordingState.startTime) document.getElementById('recording-timer').textContent = formatTime((Date.now() - recordingState.startTime) / 1000); }
+
+function updateRecordingLevelMeter() {
+    if (!recordingState.active || !recordingState.analyser) return;
+    const arr = new Uint8Array(recordingState.analyser.frequencyBinCount);
+    recordingState.analyser.getByteFrequencyData(arr);
+    let sum = 0; for (let i = 0; i < arr.length; i++) sum += arr[i];
+    document.getElementById('recording-level').style.width = Math.min(100, sum / arr.length / 128 * 100) + '%';
+    if (recordingState.active) requestAnimationFrame(updateRecordingLevelMeter);
+}
+
+function updateRecordingUI(active) {
+    const btn = document.getElementById('record-btn');
+    const icon = document.getElementById('record-icon');
+    const text = document.getElementById('record-btn-text');
+    const timer = document.getElementById('recording-timer-box');
+    btn.className = 'record-btn-large btn btn-danger' + (active ? ' recording' : '');
+    icon.className = active ? 'bi bi-stop-fill' : 'bi bi-record-circle';
+    text.textContent = active ? 'Stopp' : 'Aufnahme starten';
+    timer.style.display = active ? 'flex' : 'none';
+    if (!active) { document.getElementById('recording-timer').textContent = '0:00'; document.getElementById('recording-level').style.width = '0%'; }
+}
+
+function showRecordedPreview() {
+    document.getElementById('recorded-preview').style.display = 'block';
+    document.getElementById('no-recording-msg').style.display = 'none';
+    if (recordingState.startTime) document.getElementById('recorded-duration').textContent = formatTime((Date.now() - recordingState.startTime) / 1000);
+}
+
+function playRecordedPreview() {
+    if (!recordingState.audioUrl) return;
+    if (recordingState.previewAudio && !recordingState.previewAudio.paused) { recordingState.previewAudio.pause(); recordingState.previewAudio.currentTime = 0; document.getElementById('preview-play-icon').className = 'bi bi-play-fill'; return; }
+    recordingState.previewAudio = new Audio(recordingState.audioUrl);
+    recordingState.previewAudio.onplay = () => document.getElementById('preview-play-icon').className = 'bi bi-pause-fill';
+    recordingState.previewAudio.onended = () => { document.getElementById('preview-play-icon').className = 'bi bi-play-fill'; document.getElementById('preview-progress').style.width = '0%'; };
+    recordingState.previewAudio.ontimeupdate = function() { document.getElementById('preview-progress').style.width = (this.currentTime / this.duration * 100) + '%'; };
+    recordingState.previewAudio.play();
+}
+
+function deleteRecording() {
+    if (recordingState.previewAudio) recordingState.previewAudio.pause();
+    if (recordingState.audioUrl) URL.revokeObjectURL(recordingState.audioUrl);
+    recordingState.blob = null; recordingState.audioUrl = null; recordingState.chunks = [];
+    document.getElementById('recorded-preview').style.display = 'none';
+    document.getElementById('no-recording-msg').style.display = 'block';
+    showToast('Geloescht', 'info');
+}
+
+async function queueRecordedModeration() {
+    if (!recordingState.blob) return;
+    const fd = new FormData();
+    fd.append('audio', recordingState.blob, 'mod_' + Date.now() + '.webm');
+    fd.append('with_bed', document.getElementById('record-with-bed').checked);
+    try {
+        const r = await fetch('/api/moderation/recording/upload', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.success) showToast('Eingefuegt', 'success');
+        else showToast('Fehler: ' + d.error, 'danger');
+    } catch (e) { showToast('Upload-Fehler', 'danger'); }
+}
+
+micSocket.on('now_playing', d => { trackState.title = d.title; trackState.artist = d.artist; trackState.duration = d.duration || 0; trackState.lastUpdate = Date.now(); document.getElementById('now-playing-title').textContent = d.title || 'Kein Track'; document.getElementById('now-playing-artist').textContent = d.artist || ''; updateProgressBar(); });
+</script>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Zeitplan - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-event"></i> Zeitplan</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleModal" onclick="clearScheduleForm()">
+            <i class="bi bi-plus-lg"></i> Neue Planung
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">Aktiv</th>
+                                <th>Sendung</th>
+                                <th>Geplant für</th>
+                                <th>Wiederholung</th>
+                                <th>Zuletzt ausgeführt</th>
+                                <th style="width: 120px;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr data-schedule-id="{{ schedule.id }}">
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox"
+                                               {% if schedule.is_active %}checked{% endif %}
+                                               onchange="toggleSchedule({{ schedule.id }})">
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ schedule.show.name if schedule.show else 'N/A' }}</strong>
+                                </td>
+                                <td>
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    {{ schedule.scheduled_time.strftime('%d.%m.%Y') }}
+                                    <br>
+                                    <i class="bi bi-clock me-1"></i>
+                                    {{ schedule.scheduled_time.strftime('%H:%M') }} Uhr
+                                </td>
+                                <td>
+                                    {% if schedule.repeat_type == 'once' %}
+                                    <span class="badge bg-secondary">Einmalig</span>
+                                    {% elif schedule.repeat_type == 'daily' %}
+                                    <span class="badge bg-info">Täglich</span>
+                                    {% elif schedule.repeat_type == 'weekly' %}
+                                    <span class="badge bg-primary">Wöchentlich</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if schedule.last_run %}
+                                    {{ schedule.last_run.strftime('%d.%m.%Y %H:%M') }}
+                                    {% else %}
+                                    <span class="text-muted">Noch nie</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editSchedule({{ schedule.id }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSchedule({{ schedule.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-calendar-x fs-1"></i>
+                                    <p class="mt-2">Keine Planungen vorhanden</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scheduleModalTitle">Neue Planung erstellen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="schedule-form">
+                    <input type="hidden" id="schedule-id">
+
+                    <div class="mb-3">
+                        <label class="form-label">Sendung</label>
+                        <select class="form-select" id="schedule-show" required>
+                            <option value="">Sendung auswählen...</option>
+                            {% for show in shows %}
+                            <option value="{{ show.id }}">{{ show.name }} ({{ show.format_duration() }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Datum</label>
+                            <input type="date" class="form-control" id="schedule-date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Uhrzeit</label>
+                            <input type="time" class="form-control" id="schedule-time" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Wiederholung</label>
+                        <select class="form-select" id="schedule-repeat" onchange="updateRepeatFields()">
+                            <option value="once">Einmalig</option>
+                            <option value="daily">Täglich</option>
+                            <option value="weekly">Wöchentlich</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="days-row" style="display: none;">
+                        <label class="form-label">Wochentage</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-0" value="0" checked>
+                                <label class="form-check-label" for="sched-day-0">Mo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-1" value="1" checked>
+                                <label class="form-check-label" for="sched-day-1">Di</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-2" value="2" checked>
+                                <label class="form-check-label" for="sched-day-2">Mi</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-3" value="3" checked>
+                                <label class="form-check-label" for="sched-day-3">Do</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-4" value="4" checked>
+                                <label class="form-check-label" for="sched-day-4">Fr</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-5" value="5" checked>
+                                <label class="form-check-label" for="sched-day-5">Sa</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sched-day-6" value="6" checked>
+                                <label class="form-check-label" for="sched-day-6">So</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveSchedule()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const schedules = [{% for s in schedules %}{{ s.to_dict()|tojson|safe }}{% if not loop.last %},{% endif %}{% endfor %}];
+const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+
+function updateRepeatFields() {
+    const repeat = document.getElementById('schedule-repeat').value;
+    const daysRow = document.getElementById('days-row');
+    daysRow.style.display = repeat === 'weekly' ? 'block' : 'none';
+}
+
+function clearScheduleForm() {
+    document.getElementById('schedule-form').reset();
+    document.getElementById('schedule-id').value = '';
+    document.getElementById('scheduleModalTitle').textContent = 'Neue Planung erstellen';
+
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('schedule-date').value = today;
+
+    updateRepeatFields();
+}
+
+function editSchedule(scheduleId) {
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (!schedule) return;
+
+    document.getElementById('scheduleModalTitle').textContent = 'Planung bearbeiten';
+    document.getElementById('schedule-id').value = schedule.id;
+    document.getElementById('schedule-show').value = schedule.show_id;
+    document.getElementById('schedule-repeat').value = schedule.repeat_type;
+
+    // Parse datetime
+    if (schedule.scheduled_time) {
+        const dt = new Date(schedule.scheduled_time);
+        document.getElementById('schedule-date').value = dt.toISOString().split('T')[0];
+        document.getElementById('schedule-time').value = dt.toTimeString().slice(0, 5);
+    }
+
+    // Set days
+    if (schedule.days_of_week) {
+        const days = schedule.days_of_week.split(',');
+        for (let i = 0; i < 7; i++) {
+            document.getElementById('sched-day-' + i).checked = days.includes(i.toString());
+        }
+    }
+
+    updateRepeatFields();
+    scheduleModal.show();
+}
+
+function saveSchedule() {
+    const form = document.getElementById('schedule-form');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const date = document.getElementById('schedule-date').value;
+    const time = document.getElementById('schedule-time').value;
+    const datetime = new Date(date + 'T' + time);
+
+    // Collect days for weekly
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        if (document.getElementById('sched-day-' + i).checked) {
+            days.push(i);
+        }
+    }
+
+    const data = {
+        id: document.getElementById('schedule-id').value || null,
+        show_id: parseInt(document.getElementById('schedule-show').value),
+        scheduled_time: datetime.toISOString(),
+        repeat_type: document.getElementById('schedule-repeat').value,
+        days_of_week: days.join(','),
+        is_active: true
+    };
+
+    fetch('/schedule/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Planung gespeichert', 'success');
+            scheduleModal.hide();
+            location.reload();
+        } else {
+            showToast('Fehler beim Speichern', 'danger');
+        }
+    });
+}
+
+function toggleSchedule(scheduleId) {
+    fetch('/schedule/toggle/' + scheduleId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Status aktualisiert', 'success');
+            }
+        });
+}
+
+function deleteSchedule(scheduleId) {
+    if (!confirm('Möchten Sie diese Planung wirklich löschen?')) return;
+
+    fetch('/schedule/delete/' + scheduleId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`tr[data-schedule-id="${scheduleId}"]`).remove();
+                showToast('Planung gelöscht', 'success');
+            }
+        });
+}
+</script>
+{% endblock %}

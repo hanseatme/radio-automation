@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Dateien - Radio Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4"><i class="bi bi-file-music"></i> Dateiverwaltung</h2>
+    </div>
+</div>
+
+<!-- Category Tabs -->
+<ul class="nav nav-tabs mb-4">
+    {% for category in categories %}
+    <li class="nav-item">
+        <a class="nav-link {% if category == current_category %}active{% endif %}"
+           href="{{ url_for('main.files', category=category) }}">
+            <span class="text-capitalize">{{ category.replace('-', ' ') }}</span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+
+<!-- Upload Section -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <input type="file" class="form-control" id="file-input" name="file"
+                           accept=".mp3" multiple>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-cloud-upload"></i> Hochladen
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div id="upload-progress" class="progress mt-3 d-none">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <span class="text-capitalize">{{ current_category.replace('-', ' ') }}</span>
+            <span class="badge bg-primary ms-2">{{ files|length }} Dateien</span>
+        </h5>
+        <div>
+            <button class="btn btn-sm btn-outline-success" onclick="activateAll()">
+                <i class="bi bi-check-all"></i> Alle aktivieren
+            </button>
+            <button class="btn btn-sm btn-outline-warning" onclick="deactivateAll()">
+                <i class="bi bi-x-lg"></i> Alle deaktivieren
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="files-table">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;">Aktiv</th>
+                        <th>Dateiname</th>
+                        <th>Titel</th>
+                        <th>Interpret</th>
+                        <th>Dauer</th>
+                        <th>Gespielt</th>
+                        <th style="width: 150px;">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr data-file-id="{{ file.id }}">
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       {% if file.is_active %}checked{% endif %}
+                                       onchange="toggleFile({{ file.id }})">
+                            </div>
+                        </td>
+                        <td>
+                            <i class="bi bi-file-earmark-music text-primary"></i>
+                            {{ file.filename }}
+                        </td>
+                        <td>{{ file.title or '-' }}</td>
+                        <td>{{ file.artist or '-' }}</td>
+                        <td>{{ file.format_duration() }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ file.play_count }}x</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="queueFile({{ file.id }})"
+                                    title="Zur Warteschlange hinzufügen">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFile({{ file.id }})"
+                                    title="Löschen">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mt-2">Keine Dateien in dieser Kategorie</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const currentCategory = '{{ current_category }}';
+
+document.getElementById('upload-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('file-input');
+    const progressBar = document.getElementById('upload-progress');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+
+    if (!fileInput.files.length) {
+        showToast('Bitte wählen Sie eine Datei aus', 'warning');
+        return;
+    }
+
+    progressBar.classList.remove('d-none');
+
+    for (const file of fileInput.files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/files/upload/' + currentCategory, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast('Datei "' + file.name + '" hochgeladen', 'success');
+            } else {
+                showToast('Fehler: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showToast('Upload-Fehler: ' + error, 'danger');
+        }
+    }
+
+    progressBar.classList.add('d-none');
+    progressBarInner.style.width = '0%';
+    fileInput.value = '';
+
+    // Reload page to show new files
+    setTimeout(() => location.reload(), 1000);
+});
+
+function toggleFile(fileId) {
+    fetch('/files/toggle/' + fileId, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Status aktualisiert', 'success');
+            }
+        });
+}
+
+function deleteFile(fileId) {
+    if (!confirm('Möchten Sie diese Datei wirklich löschen?')) return;
+
+    fetch('/files/delete/' + fileId, {
+        method: 'POST',
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Server error');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`tr[data-file-id="${fileId}"]`).remove();
+                showToast('Datei gelöscht', 'success');
+            } else {
+                showToast('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'danger');
+            }
+        })
+        .catch(error => {
+            showToast('Fehler beim Löschen: ' + error.message, 'danger');
+        });
+}
+
+function queueFile(fileId) {
+    fetch('/api/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Zur Warteschlange hinzugefügt', 'success');
+        } else {
+            showToast('Fehler: ' + data.error, 'danger');
+        }
+    });
+}
+
+function activateAll() {
+    document.querySelectorAll('#files-table tbody input[type="checkbox"]:not(:checked)').forEach(cb => {
+        cb.click();
+    });
+}
+
+function deactivateAll() {
+    document.querySelectorAll('#files-table tbody input[type="checkbox"]:checked').forEach(cb => {
+        cb.click();
+    });
+}
+</script>
+{% endblock %}

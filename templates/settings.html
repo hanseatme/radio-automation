@@ -89,7 +89,10 @@
             </div>
             <div class="card-body">
                 <form id="crossfade-settings-form">
-                    <p class="text-muted small mb-3">Definiere Überblendzeiten für verschiedene Inhaltstypen. Musik wird beim Überblenden automatisch ausgefadet.</p>
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Hinweis:</strong> Aktuell werden nur die <strong>Musik-Crossfade-Einstellungen</strong> angewendet, da alle Inhalte (Musik, Jingles, Moderationen) die gleiche Überblendung verwenden. Die Jingle- und Moderations-Einstellungen werden gespeichert, aber derzeit nicht separat verwendet.
+                    </div>
 
                     <!-- Music Crossfade -->
                     <div class="mb-3">
@@ -97,15 +100,15 @@
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-music-fade-in"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-music-fade-in"
                                        value="{{ stream_settings.crossfade_music_fade_in|default(0.5) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.5 oder 0,5">
                             </div>
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-music-fade-out"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-music-fade-out"
                                        value="{{ stream_settings.crossfade_music_fade_out|default(0.5) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.5 oder 0,5">
                             </div>
                         </div>
                     </div>
@@ -116,15 +119,15 @@
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-jingle-fade-in"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-jingle-fade-in"
                                        value="{{ stream_settings.crossfade_jingle_fade_in|default(0.0) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.0 oder 0,0">
                             </div>
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-jingle-fade-out"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-jingle-fade-out"
                                        value="{{ stream_settings.crossfade_jingle_fade_out|default(0.0) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.0 oder 0,0">
                             </div>
                         </div>
                     </div>
@@ -135,15 +138,15 @@
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-moderation-fade-in"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-moderation-fade-in"
                                        value="{{ stream_settings.crossfade_moderation_fade_in|default(0.0) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.0 oder 0,0">
                             </div>
                             <div class="col-6">
                                 <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="number" class="form-control form-control-sm" id="crossfade-moderation-fade-out"
+                                <input type="text" class="form-control form-control-sm" id="crossfade-moderation-fade-out"
                                        value="{{ stream_settings.crossfade_moderation_fade_out|default(0.0) }}"
-                                       min="0" max="5" step="0.1">
+                                       placeholder="0.0 oder 0,0">
                             </div>
                         </div>
                     </div>
@@ -406,6 +409,12 @@
 
 {% block extra_js %}
 <script>
+// Helper function to parse German/English decimal numbers
+function parseGermanFloat(value) {
+    // Replace comma with dot for German decimal notation
+    return parseFloat(value.toString().replace(',', '.'));
+}
+
 // Stream Settings Form
 document.getElementById('stream-settings-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -420,7 +429,7 @@ document.getElementById('stream-settings-form').addEventListener('submit', async
                 output_samplerate: document.getElementById('output-samplerate').value,
                 output_channels: document.getElementById('output-channels').value,
                 normalize_enabled: document.getElementById('normalize-enabled').checked,
-                target_lufs: document.getElementById('target-lufs').value
+                target_lufs: parseGermanFloat(document.getElementById('target-lufs').value)
             })
         });
 
@@ -447,12 +456,12 @@ document.getElementById('crossfade-settings-form').addEventListener('submit', as
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                crossfade_music_fade_in: parseFloat(document.getElementById('crossfade-music-fade-in').value),
-                crossfade_music_fade_out: parseFloat(document.getElementById('crossfade-music-fade-out').value),
-                crossfade_jingle_fade_in: parseFloat(document.getElementById('crossfade-jingle-fade-in').value),
-                crossfade_jingle_fade_out: parseFloat(document.getElementById('crossfade-jingle-fade-out').value),
-                crossfade_moderation_fade_in: parseFloat(document.getElementById('crossfade-moderation-fade-in').value),
-                crossfade_moderation_fade_out: parseFloat(document.getElementById('crossfade-moderation-fade-out').value)
+                crossfade_music_fade_in: parseGermanFloat(document.getElementById('crossfade-music-fade-in').value),
+                crossfade_music_fade_out: parseGermanFloat(document.getElementById('crossfade-music-fade-out').value),
+                crossfade_jingle_fade_in: parseGermanFloat(document.getElementById('crossfade-jingle-fade-in').value),
+                crossfade_jingle_fade_out: parseGermanFloat(document.getElementById('crossfade-jingle-fade-out').value),
+                crossfade_moderation_fade_in: parseGermanFloat(document.getElementById('crossfade-moderation-fade-in').value),
+                crossfade_moderation_fade_out: parseGermanFloat(document.getElementById('crossfade-moderation-fade-out').value)
             })
         });
 

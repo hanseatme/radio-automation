@@ -36,39 +36,47 @@ def load_crossfade_settings() =
     if file.exists(settings_file) then
         log("Loading crossfade settings from #{settings_file}")
         content = file.contents(settings_file)
-        # Parse crossfade values using simple string matching
-        # Format: "crossfade_music_fade_in": 0.5
-        def get_float_value(key) =
-            pattern = "\"#{key}\": "
-            if string.contains(substring=pattern, content) then
-                # Find the value after the pattern
-                parts = string.split(separator=pattern, content)
+
+        # Simple string-based extraction
+        def get_float_value(key, def_val) =
+            # Find pattern: "key": value
+            search_pattern = "\"#{key}\": "
+            if string.contains(substring=search_pattern, content) then
+                # Split at the pattern
+                parts = string.split(separator=search_pattern, content)
                 if list.length(parts) > 1 then
-                    value_part = list.nth(default="0.5", parts, 1)
-                    # Extract number (before comma or closing brace)
-                    value_str = string.sub(value_part, start=0, length=5)
-                    # Clean the string
-                    value_str = string.replace(pattern=",", fun(_) -> "", value_str)
-                    value_str = string.replace(pattern="}", fun(_) -> "", value_str)
-                    value_str = string.replace(pattern=" ", fun(_) -> "", value_str)
-                    value_str = string.replace(pattern="\n", fun(_) -> "", value_str)
-                    float_of_string(default=0.5, value_str)
+                    # Get the part after the pattern
+                    value_part = list.nth(default="", parts, 1)
+                    # Split at comma to get just the value
+                    value_parts = string.split(separator=",", value_part)
+                    if list.length(value_parts) > 0 then
+                        raw_value = list.nth(default="0", value_parts, 0)
+                        # Clean up (remove spaces and braces)
+                        clean_value = string.replace(pattern=" ", fun(_) -> "", raw_value)
+                        clean_value = string.replace(pattern="}", fun(_) -> "", clean_value)
+                        # Parse to float
+                        float_of_string(default=def_val, clean_value)
+                    else
+                        def_val
+                    end
                 else
-                    0.5
+                    def_val
                 end
             else
-                0.5
+                def_val
             end
         end
-        crossfade_music_fade_in := get_float_value("crossfade_music_fade_in")
-        crossfade_music_fade_out := get_float_value("crossfade_music_fade_out")
-        crossfade_jingle_fade_in := get_float_value("crossfade_jingle_fade_in")
-        crossfade_jingle_fade_out := get_float_value("crossfade_jingle_fade_out")
-        crossfade_moderation_fade_in := get_float_value("crossfade_moderation_fade_in")
-        crossfade_moderation_fade_out := get_float_value("crossfade_moderation_fade_out")
-        log("Loaded: music_in=#{!crossfade_music_fade_in}, music_out=#{!crossfade_music_fade_out}")
+
+        crossfade_music_fade_in := get_float_value("crossfade_music_fade_in", 0.5)
+        crossfade_music_fade_out := get_float_value("crossfade_music_fade_out", 0.5)
+        crossfade_jingle_fade_in := get_float_value("crossfade_jingle_fade_in", 0.0)
+        crossfade_jingle_fade_out := get_float_value("crossfade_jingle_fade_out", 0.0)
+        crossfade_moderation_fade_in := get_float_value("crossfade_moderation_fade_in", 0.0)
+        crossfade_moderation_fade_out := get_float_value("crossfade_moderation_fade_out", 0.0)
+
+        log("Loaded: music_in=#{!crossfade_music_fade_in}, music_out=#{!crossfade_music_fade_out}, jingle_in=#{!crossfade_jingle_fade_in}, jingle_out=#{!crossfade_jingle_fade_out}")
     else
-        log("No settings file found, using defaults")
+        log("No settings file found at #{settings_file}, using defaults")
     end
 end
 
@@ -125,7 +133,9 @@ radio_base = fallback(
 
 # Apply crossfade for smooth transitions between all sources
 # Uses the configured music fade settings
+# IMPORTANT: duration must be set to match fade times, otherwise default 5s is used
 radio_base = crossfade(
+    duration=max(0.1, !crossfade_music_fade_in + !crossfade_music_fade_out),
     fade_out=!crossfade_music_fade_out,
     fade_in=!crossfade_music_fade_in,
     radio_base

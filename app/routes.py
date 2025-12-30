@@ -420,14 +420,61 @@ def save_stream_settings():
     if 'current_show_id' in data:
         settings.current_show_id = int(data['current_show_id']) if data['current_show_id'] else None
 
+    # Crossfade settings
+    if 'crossfade_music_fade_in' in data:
+        settings.crossfade_music_fade_in = float(data['crossfade_music_fade_in'])
+    if 'crossfade_music_fade_out' in data:
+        settings.crossfade_music_fade_out = float(data['crossfade_music_fade_out'])
+    if 'crossfade_jingle_fade_in' in data:
+        settings.crossfade_jingle_fade_in = float(data['crossfade_jingle_fade_in'])
+    if 'crossfade_jingle_fade_out' in data:
+        settings.crossfade_jingle_fade_out = float(data['crossfade_jingle_fade_out'])
+    if 'crossfade_moderation_fade_in' in data:
+        settings.crossfade_moderation_fade_in = float(data['crossfade_moderation_fade_in'])
+    if 'crossfade_moderation_fade_out' in data:
+        settings.crossfade_moderation_fade_out = float(data['crossfade_moderation_fade_out'])
+
     db.session.commit()
 
     # Trigger Liquidsoap config update
     try:
-        from app.audio_engine import update_output_settings
+        from app.audio_engine import update_output_settings, update_crossfade_settings
+        import json
+        import subprocess
+
         update_output_settings(settings)
+
+        # Write crossfade settings to JSON file that Liquidsoap reads on startup
+        settings_file = '/data/stream_settings.json'
+        crossfade_data = {
+            'crossfade_music_fade_in': settings.crossfade_music_fade_in,
+            'crossfade_music_fade_out': settings.crossfade_music_fade_out,
+            'crossfade_jingle_fade_in': settings.crossfade_jingle_fade_in,
+            'crossfade_jingle_fade_out': settings.crossfade_jingle_fade_out,
+            'crossfade_moderation_fade_in': settings.crossfade_moderation_fade_in,
+            'crossfade_moderation_fade_out': settings.crossfade_moderation_fade_out
+        }
+
+        try:
+            with open(settings_file, 'w') as f:
+                json.dump(crossfade_data, f, indent=2)
+            print(f"Wrote crossfade settings to {settings_file}: {crossfade_data}", flush=True)
+        except Exception as e:
+            print(f"Warning: Could not write crossfade settings to file: {e}", flush=True)
+
+        # Apply crossfade settings to Liquidsoap (for immediate effect via telnet)
+        update_crossfade_settings(settings)
+
+        # Restart Liquidsoap to load new crossfade values from JSON
+        # Note: This requires supervisor to restart the liquidsoap process
+        try:
+            subprocess.run(['supervisorctl', 'restart', 'liquidsoap'], timeout=10)
+            print("Restarted Liquidsoap to apply new crossfade settings", flush=True)
+        except Exception as e:
+            print(f"Warning: Could not restart Liquidsoap: {e}", flush=True)
+
     except Exception as e:
-        print(f"Warning: Could not update Liquidsoap settings: {e}")
+        print(f"Warning: Could not update Liquidsoap settings: {e}", flush=True)
 
     return jsonify({'success': True, 'settings': settings.to_dict()})
 

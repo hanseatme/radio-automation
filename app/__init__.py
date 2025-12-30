@@ -4,6 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_socketio import SocketIO
 
+# Version
+VERSION = "1.1.0"
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 socketio = SocketIO()
@@ -36,6 +39,11 @@ def create_app():
     from app.api import api_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    # Make version available in all templates
+    @app.context_processor
+    def inject_version():
+        return {'app_version': VERSION}
 
     # Create database tables
     with app.app_context():

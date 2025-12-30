@@ -260,6 +260,11 @@ def generate_playlist_file(category):
     This creates a .m3u playlist file that Liquidsoap can use instead of
     scanning the entire directory. Only active files are included.
 
+    For music category: Songs are sorted to avoid repetition:
+    - Never played songs first
+    - Then sorted by last_played (oldest first)
+    - Then by play_count (least played first)
+
     Args:
         category: The category to generate a playlist for
 
@@ -268,10 +273,21 @@ def generate_playlist_file(category):
     """
     try:
         # Get all active files for this category
-        active_files = AudioFile.query.filter_by(
+        query = AudioFile.query.filter_by(
             category=category,
             is_active=True
-        ).all()
+        )
+
+        # For music category: sort to avoid repetition
+        # Songs that were played recently should appear later in the playlist
+        if category == 'music':
+            # Sort by last_played (NULL first = never played), then by play_count
+            query = query.order_by(
+                AudioFile.last_played.asc().nullsfirst(),
+                AudioFile.play_count.asc()
+            )
+
+        active_files = query.all()
 
         # Generate playlist path
         playlist_path = f'/data/playlists/{category}.m3u'

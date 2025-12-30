@@ -51,10 +51,11 @@ def init_scheduler(app):
         )
 
         # Regenerate playlists periodically to reflect active/inactive changes
+        # and to update play history sorting (avoid song repetition)
         scheduler.add_job(
             func=regenerate_playlists_task,
             trigger='interval',
-            minutes=2,
+            minutes=5,
             id='playlist_regeneration',
             replace_existing=True,
             kwargs={'app': app}

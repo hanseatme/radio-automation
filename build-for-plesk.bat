@@ -7,8 +7,18 @@ echo.
 REM Zum Projektverzeichnis wechseln
 cd /d "%~dp0"
 
-echo [1/3] Baue Docker Image...
-docker build -t radio-automation:latest .
+REM Version aus app/__init__.py extrahieren
+echo [0/4] Extrahiere Version...
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "((Get-Content app\__init__.py ^| Select-String 'VERSION').Line -split '\"')[1]"') do set VERSION=%%a
+if "%VERSION%"=="" (
+    echo FEHLER: Version konnte nicht extrahiert werden!
+    set VERSION=latest
+)
+echo Version: %VERSION%
+echo.
+
+echo [1/4] Baue Docker Image...
+docker build -t radio-automation:latest -t radio-automation:%VERSION% .
 
 if %ERRORLEVEL% NEQ 0 (
     echo FEHLER: Docker Build fehlgeschlagen!
@@ -17,8 +27,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [2/3] Exportiere Image als .tar Datei...
-docker save radio-automation:latest -o radio-automation.tar
+echo [2/4] Exportiere Image als .tar Datei...
+docker save radio-automation:latest radio-automation:%VERSION% -o radio-automation-v%VERSION%-plesk.tar
 
 if %ERRORLEVEL% NEQ 0 (
     echo FEHLER: Image-Export fehlgeschlagen!
@@ -27,19 +37,34 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [3/3] Fertig!
+echo [3/4] Verschiebe Build in builds/ Verzeichnis...
+if not exist builds mkdir builds
+move /Y radio-automation-v%VERSION%-plesk.tar builds\
+
+if %ERRORLEVEL% NEQ 0 (
+    echo FEHLER: Verschieben fehlgeschlagen!
+    pause
+    exit /b 1
+)
+
+echo.
+echo [4/4] Fertig!
 echo.
 echo ============================================
 echo Die folgenden Dateien zum Server hochladen:
 echo ============================================
 echo.
-echo   1. radio-automation.tar        (Docker Image)
+echo   1. builds\radio-automation-v%VERSION%-plesk.tar  (Docker Image mit Version %VERSION%)
 echo   2. docker-compose.production.yml
 echo   3. .env.production.example     (als .env umbenennen und anpassen)
 echo   4. DEPLOYMENT.md               (Anleitung)
 echo.
 echo Groesse des Images:
-for %%A in (radio-automation.tar) do echo   %%~zA Bytes (%%A)
+for %%A in (builds\radio-automation-v%VERSION%-plesk.tar) do echo   %%~zA Bytes (%%~nxA)
+echo.
+echo WICHTIG: Das Docker Image enthaelt folgende Tags:
+echo   - radio-automation:latest
+echo   - radio-automation:%VERSION%
 echo.
 echo ============================================
 pause

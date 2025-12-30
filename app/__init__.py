@@ -49,6 +49,10 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # Run database migrations
+        from app.migrations import run_migrations
+        run_migrations()
+
     # Start scheduler
     from app.scheduler import init_scheduler
     init_scheduler(app)

@@ -19,7 +19,15 @@
       "Bash(tar:*)",
       "Bash(powershell -Command \"\\(Select-String -Path app\\\\__init__.py -Pattern ''VERSION = ''\\).Line -replace ''.*\"\"\\(.*\\)\"\".*'',''$1''\")",
       "Bash(findstr:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(curl:*)",
+      "Bash(docker-compose exec streamserver cat:*)",
+      "Bash(docker volume:*)",
+      "Bash(for i in {1..3})",
+      "Bash(do curl -s http://localhost:8080/api/nowplaying.json)",
+      "Bash(done)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run:*)"
     ]
   }
 }

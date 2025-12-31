@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 3  # Increment this when adding new migrations
+SCHEMA_VERSION = 7  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -134,13 +134,138 @@ def migration_v2_to_v3():
         return False
 
 
+def migration_v3_to_v4():
+    """
+    Migration from v3 to v4:
+    - Add TTS configuration fields to stream_settings
+    """
+    logger.info("Running migration v3 -> v4: Adding TTS configuration fields")
+
+    changes_made = False
+
+    # Minimax TTS configuration
+    if add_column_if_not_exists('stream_settings', 'minimax_api_key',
+                                  "VARCHAR(200) DEFAULT ''"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'minimax_voice_id',
+                                  "VARCHAR(100) DEFAULT 'male-qn-qingse'"):
+        changes_made = True
+
+    # TTS Audio Processing settings
+    if add_column_if_not_exists('stream_settings', 'tts_intro_file',
+                                  "VARCHAR(500) DEFAULT ''"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_outro_file',
+                                  "VARCHAR(500) DEFAULT ''"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_musicbed_file',
+                                  "VARCHAR(500) DEFAULT ''"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_crossfade_ms',
+                                  "INTEGER DEFAULT 500"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_musicbed_volume',
+                                  "FLOAT DEFAULT 0.25"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_target_dbfs',
+                                  "FLOAT DEFAULT -3.0"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'tts_highpass_hz',
+                                  "INTEGER DEFAULT 80"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v3 -> v4 completed successfully")
+    else:
+        logger.info("Migration v3 -> v4: No changes needed (columns already exist)")
+
+    return True
+
+
+def migration_v4_to_v5():
+    """
+    Migration from v4 to v5:
+    - Add minimax_model field to stream_settings
+    """
+    logger.info("Running migration v4 -> v5: Adding minimax_model field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'minimax_model',
+                                  "VARCHAR(100) DEFAULT 'speech-2.6-turbo'"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v4 -> v5 completed successfully")
+    else:
+        logger.info("Migration v4 -> v5: No changes needed (column already exists)")
+
+    return True
+
+
+def migration_v5_to_v6():
+    """
+    Migration from v5 to v6:
+    - Add minimax_group_id field for Minimax API GroupId
+    """
+    logger.info("Running migration v5 -> v6: Adding minimax_group_id field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'minimax_group_id',
+                                  "VARCHAR(50) DEFAULT ''"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v5 -> v6 completed successfully")
+    else:
+        logger.info("Migration v5 -> v6: No changes needed (column already exists)")
+
+    return True
+
+
+def migration_v6_to_v7():
+    """
+    Migration from v6 to v7:
+    - Add minimax_emotion field for TTS emotion
+    - Add minimax_language_boost field for language optimization
+    """
+    logger.info("Running migration v6 -> v7: Adding emotion and language_boost fields")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'minimax_emotion',
+                                  "VARCHAR(50) DEFAULT 'happy'"):
+        changes_made = True
+
+    if add_column_if_not_exists('stream_settings', 'minimax_language_boost',
+                                  "VARCHAR(50) DEFAULT 'German'"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v6 -> v7 completed successfully")
+    else:
+        logger.info("Migration v6 -> v7: No changes needed (columns already exist)")
+
+    return True
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
     2: migration_v1_to_v2,
     3: migration_v2_to_v3,
-    # Add future migrations here:
-    # 4: migration_v3_to_v4,
+    4: migration_v3_to_v4,
+    5: migration_v4_to_v5,
+    6: migration_v5_to_v6,
+    7: migration_v6_to_v7,
 }
 
 

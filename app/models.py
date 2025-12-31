@@ -269,6 +269,23 @@ class StreamSettings(db.Model):
     ad_nowplaying_text = db.Column(db.String(100), default='Werbung')
     moderation_nowplaying_text = db.Column(db.String(100), default='Moderation')
 
+    # Minimax TTS Konfiguration
+    minimax_api_key = db.Column(db.Text, default='')  # JWT tokens can be 800+ chars
+    minimax_group_id = db.Column(db.String(50), default='')  # GroupId for API calls
+    minimax_model = db.Column(db.String(100), default='speech-2.6-turbo')
+    minimax_voice_id = db.Column(db.String(100), default='German_PlayfulMan')
+    minimax_emotion = db.Column(db.String(50), default='happy')  # Emotion for TTS
+    minimax_language_boost = db.Column(db.String(50), default='German')  # Language optimization
+
+    # TTS Audio Processing Einstellungen
+    tts_intro_file = db.Column(db.String(500), default='')
+    tts_outro_file = db.Column(db.String(500), default='')
+    tts_musicbed_file = db.Column(db.String(500), default='')
+    tts_crossfade_ms = db.Column(db.Integer, default=500)
+    tts_musicbed_volume = db.Column(db.Float, default=0.25)
+    tts_target_dbfs = db.Column(db.Float, default=-3.0)
+    tts_highpass_hz = db.Column(db.Integer, default=80)
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -306,7 +323,21 @@ class StreamSettings(db.Model):
             'ad_nowplaying_text': self.ad_nowplaying_text,
             'moderation_nowplaying_text': self.moderation_nowplaying_text,
             'current_show_id': self.current_show_id,
-            'current_show_name': self.current_show.name if self.current_show else None
+            'current_show_name': self.current_show.name if self.current_show else None,
+            # TTS Settings
+            'minimax_api_key': '***' if self.minimax_api_key else '',  # Mask API key
+            'minimax_api_key_set': bool(self.minimax_api_key),
+            'minimax_model': self.minimax_model,
+            'minimax_voice_id': self.minimax_voice_id,
+            'minimax_emotion': self.minimax_emotion,
+            'minimax_language_boost': self.minimax_language_boost,
+            'tts_intro_file': self.tts_intro_file,
+            'tts_outro_file': self.tts_outro_file,
+            'tts_musicbed_file': self.tts_musicbed_file,
+            'tts_crossfade_ms': self.tts_crossfade_ms,
+            'tts_musicbed_volume': self.tts_musicbed_volume,
+            'tts_target_dbfs': self.tts_target_dbfs,
+            'tts_highpass_hz': self.tts_highpass_hz
         }
 
 

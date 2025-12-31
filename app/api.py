@@ -906,3 +906,307 @@ def get_listener_history():
         'data': [s.to_dict() for s in stats],
         'count': len(stats)
     })
+
+
+# ==================== TTS GENERATOR ====================
+
+@api_bp.route('/tts/generate', methods=['POST'])
+def generate_tts():
+    """
+    Generate TTS audio with optional processing
+
+    Request body:
+    - text: The text to convert to speech (required)
+    - voice_id: Voice ID to use (optional, uses default from settings)
+    - target_folder: Where to save the file (random-moderation, planned-moderation, misc)
+    - filename: Custom filename without extension (optional, auto-generated if not provided)
+    - process_audio: Whether to apply audio processing (default: true)
+    """
+    from app.tts_service import generate_tts_with_processing, MinimaxTTS
+
+    data = request.json
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+    text = data.get('text', '').strip()
+    if not text:
+        return jsonify({'success': False, 'error': 'Text is required'}), 400
+
+    if len(text) > 5000:
+        return jsonify({'success': False, 'error': 'Text too long (max 5000 characters)'}), 400
+
+    target_folder = data.get('target_folder', 'random-moderation')
+    valid_folders = ['random-moderation', 'planned-moderation', 'misc']
+    if target_folder not in valid_folders:
+        return jsonify({'success': False, 'error': f'Invalid target folder. Use: {", ".join(valid_folders)}'}), 400
+
+    filename = (data.get('filename') or '').strip() or None
+
+    # Get settings
+    settings = StreamSettings.get_settings()
+
+    # Override voice_id if provided
+    voice_id = data.get('voice_id')
+    if voice_id:
+        settings.minimax_voice_id = voice_id
+
+    # Generate TTS
+    result = generate_tts_with_processing(
+        text=text,
+        settings=settings,
+        target_folder=target_folder,
+        filename=filename
+    )
+
+    if result['success']:
+        # Regenerate playlists to include the new file
+        from app.utils import regenerate_all_playlists
+        regenerate_all_playlists()
+
+        return jsonify(result)
+    else:
+        return jsonify(result), 500
+
+
+@api_bp.route('/tts/voices', methods=['GET'])
+def get_tts_voices():
+    """Get available TTS voices from Minimax API"""
+    from app.tts_service import MinimaxTTS
+
+    settings = StreamSettings.get_settings()
+    tts = MinimaxTTS(settings.minimax_api_key, settings.minimax_group_id)
+    voices = tts.list_voices()
+
+    return jsonify({
+        'success': True,
+        'voices': voices,
+        'current_voice': settings.minimax_voice_id
+    })
+
+
+@api_bp.route('/tts/settings', methods=['GET'])
+def get_tts_settings():
+    """Get TTS configuration settings"""
+    settings = StreamSettings.get_settings()
+
+    return jsonify({
+        'minimax_api_key_set': bool(settings.minimax_api_key),
+        'minimax_group_id': settings.minimax_group_id or '',
+        'minimax_model': settings.minimax_model,
+        'minimax_voice_id': settings.minimax_voice_id,
+        'minimax_emotion': settings.minimax_emotion or 'happy',
+        'minimax_language_boost': settings.minimax_language_boost or 'German',
+        'tts_intro_file': settings.tts_intro_file,
+        'tts_outro_file': settings.tts_outro_file,
+        'tts_musicbed_file': settings.tts_musicbed_file,
+        'tts_crossfade_ms': settings.tts_crossfade_ms,
+        'tts_musicbed_volume': settings.tts_musicbed_volume,
+        'tts_target_dbfs': settings.tts_target_dbfs,
+        'tts_highpass_hz': settings.tts_highpass_hz
+    })
+
+
+@api_bp.route('/tts/settings', methods=['POST'])
+def update_tts_settings():
+    """Update TTS configuration settings"""
+    data = request.json
+    settings = StreamSettings.get_settings()
+
+    # API Key (only update if provided, not empty, and not masked)
+    if 'minimax_api_key' in data and data['minimax_api_key'] and data['minimax_api_key'] != '***':
+        settings.minimax_api_key = data['minimax_api_key']
+
+    # Group ID
+    if 'minimax_group_id' in data:
+        settings.minimax_group_id = data['minimax_group_id']
+
+    if 'minimax_model' in data:
+        settings.minimax_model = data['minimax_model']
+
+    if 'minimax_voice_id' in data:
+        settings.minimax_voice_id = data['minimax_voice_id']
+
+    if 'minimax_emotion' in data:
+        settings.minimax_emotion = data['minimax_emotion']
+
+    if 'minimax_language_boost' in data:
+        settings.minimax_language_boost = data['minimax_language_boost']
+
+    if 'tts_intro_file' in data:
+        settings.tts_intro_file = data['tts_intro_file']
+
+    if 'tts_outro_file' in data:
+        settings.tts_outro_file = data['tts_outro_file']
+
+    if 'tts_musicbed_file' in data:
+        settings.tts_musicbed_file = data['tts_musicbed_file']
+
+    if 'tts_crossfade_ms' in data:
+        settings.tts_crossfade_ms = max(0, min(2000, int(data['tts_crossfade_ms'])))
+
+    if 'tts_musicbed_volume' in data:
+        settings.tts_musicbed_volume = max(0.0, min(1.0, float(data['tts_musicbed_volume'])))
+
+    if 'tts_target_dbfs' in data:
+        settings.tts_target_dbfs = max(-20.0, min(0.0, float(data['tts_target_dbfs'])))
+
+    if 'tts_highpass_hz' in data:
+        settings.tts_highpass_hz = max(20, min(500, int(data['tts_highpass_hz'])))
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'TTS settings updated'})
+
+
+@api_bp.route('/internal-files', methods=['GET'])
+def get_internal_files():
+    """Get list of internal files (intro, outro, musicbed)"""
+    import os
+
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    internal_path = os.path.join(media_path, 'internal')
+
+    files = []
+
+    if os.path.exists(internal_path):
+        for filename in os.listdir(internal_path):
+            if filename.lower().endswith(('.mp3', '.wav', '.ogg', '.flac')):
+                filepath = os.path.join(internal_path, filename)
+                try:
+                    size = os.path.getsize(filepath)
+                    files.append({
+                        'filename': filename,
+                        'size': size,
+                        'size_formatted': f'{size / 1024 / 1024:.2f} MB' if size > 1024*1024 else f'{size / 1024:.1f} KB'
+                    })
+                except:
+                    pass
+
+    return jsonify({
+        'success': True,
+        'files': sorted(files, key=lambda x: x['filename'])
+    })
+
+
+@api_bp.route('/internal-files/upload', methods=['POST'])
+def upload_internal_file():
+    """Upload an internal file (intro, outro, musicbed)"""
+    import os
+    from werkzeug.utils import secure_filename
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+    # Check file extension
+    allowed_extensions = {'.mp3', '.wav', '.ogg', '.flac'}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}), 400
+
+    # Secure filename
+    filename = secure_filename(file.filename)
+
+    # Create internal directory if it doesn't exist
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    internal_path = os.path.join(media_path, 'internal')
+    os.makedirs(internal_path, exist_ok=True)
+
+    # Save file
+    filepath = os.path.join(internal_path, filename)
+    file.save(filepath)
+
+    return jsonify({
+        'success': True,
+        'filename': filename,
+        'message': f'File {filename} uploaded successfully'
+    })
+
+
+@api_bp.route('/internal-files/<filename>', methods=['DELETE'])
+def delete_internal_file(filename):
+    """Delete an internal file"""
+    import os
+    from werkzeug.utils import secure_filename
+
+    # Secure filename to prevent path traversal
+    filename = secure_filename(filename)
+
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    filepath = os.path.join(media_path, 'internal', filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'error': 'File not found'}), 404
+
+    try:
+        os.remove(filepath)
+
+        # Clear from settings if it was configured
+        settings = StreamSettings.get_settings()
+        if settings.tts_intro_file == filename:
+            settings.tts_intro_file = ''
+        if settings.tts_outro_file == filename:
+            settings.tts_outro_file = ''
+        if settings.tts_musicbed_file == filename:
+            settings.tts_musicbed_file = ''
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': f'File {filename} deleted'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/internal-files/stream/<filename>')
+def stream_internal_file(filename):
+    """Stream an internal file for preview playback"""
+    import os
+    from flask import send_file
+    from werkzeug.utils import secure_filename
+
+    # Secure filename
+    filename = secure_filename(filename)
+
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    filepath = os.path.join(media_path, 'internal', filename)
+
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype='audio/mpeg')
+    else:
+        return jsonify({'error': 'File not found'}), 404
+
+
+@api_bp.route('/audio/<category>/<filename>')
+def stream_audio_file(category, filename):
+    """Stream an audio file from a category folder for playback"""
+    import os
+    from flask import send_file
+    from werkzeug.utils import secure_filename
+
+    # Validate category
+    valid_categories = ['music', 'jingles', 'promos', 'ads', 'random-moderation',
+                        'planned-moderation', 'misc', 'musicbeds', 'internal']
+    if category not in valid_categories:
+        return jsonify({'error': 'Invalid category'}), 400
+
+    # Secure filename
+    filename = secure_filename(filename)
+
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    filepath = os.path.join(media_path, category, filename)
+
+    if os.path.exists(filepath):
+        # Determine mimetype based on extension
+        ext = filename.lower().split('.')[-1] if '.' in filename else 'mp3'
+        mimetypes = {
+            'mp3': 'audio/mpeg',
+            'ogg': 'audio/ogg',
+            'wav': 'audio/wav',
+            'flac': 'audio/flac'
+        }
+        mimetype = mimetypes.get(ext, 'audio/mpeg')
+        return send_file(filepath, mimetype=mimetype)
+    else:
+        return jsonify({'error': 'File not found'}), 404

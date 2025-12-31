@@ -5,7 +5,7 @@ from flask_login import LoginManager
 from flask_socketio import SocketIO
 
 # Version
-VERSION = "1.6.5"
+VERSION = "1.8.0"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -25,7 +25,8 @@ def create_app():
 
     # Media paths
     app.config['MEDIA_PATH'] = '/media'
-    app.config['CATEGORIES'] = ['music', 'promos', 'jingles', 'ads', 'random-moderation', 'planned-moderation', 'musicbeds']
+    app.config['CATEGORIES'] = ['music', 'promos', 'jingles', 'ads', 'random-moderation', 'planned-moderation', 'musicbeds', 'misc']
+    # Note: 'internal' folder is used for TTS processing files (intro, outro, musicbed) and is not a browseable category
 
     # Initialize extensions
     db.init_app(app)

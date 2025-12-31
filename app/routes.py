@@ -584,3 +584,27 @@ def moderation():
 def statistics():
     """Statistics page showing listener counts and trends"""
     return render_template('statistics.html')
+
+
+@main_bp.route('/tts-generator')
+@login_required
+def tts_generator():
+    """KI Moderation page for creating AI voice moderations"""
+    # Get current settings
+    settings = StreamSettings.get_settings()
+
+    # Get internal files for intro/outro/musicbed selection
+    import os
+    media_path = os.environ.get('MEDIA_PATH', '/media')
+    internal_path = os.path.join(media_path, 'internal')
+
+    internal_files = []
+    if os.path.exists(internal_path):
+        for filename in os.listdir(internal_path):
+            if filename.lower().endswith(('.mp3', '.wav', '.ogg', '.flac')):
+                internal_files.append(filename)
+    internal_files.sort()
+
+    return render_template('tts_generator.html',
+                           settings=settings,
+                           internal_files=internal_files)

@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}KI Moderation{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2><i class="bi bi-robot"></i> KI Moderation</h2>
+    <p class="text-muted">KI-generierte Sprachmoderationen erstellen</p>
+
+    <div class="row mt-4">
+        <!-- Main TTS Generation Panel -->
+        <div class="col-lg-8">
+            <!-- API Status -->
+            {% if not settings.minimax_api_key %}
+            <div class="alert alert-warning mb-4">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Kein API Key konfiguriert.</strong>
+                Bitte hinterlegen Sie Ihren Minimax API Key in den <a href="{{ url_for('main.settings') }}">Einstellungen</a>.
+            </div>
+            {% endif %}
+
+            <!-- Text Input Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-chat-text"></i> Text eingeben</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="tts-text" rows="5"
+                                  placeholder="Geben Sie hier den Text ein, der in Sprache umgewandelt werden soll..."></textarea>
+                        <div class="form-text">
+                            <span id="char-count">0</span> / 5000 Zeichen
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Zielordner</label>
+                            <select class="form-select" id="target-folder">
+                                <option value="random-moderation">Zufällige Moderation</option>
+                                <option value="planned-moderation">Geplante Moderation</option>
+                                <option value="misc">Sonstige</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dateiname (optional)</label>
+                            <input type="text" class="form-control" id="filename-input"
+                                   placeholder="Automatisch generieren">
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button class="btn btn-primary btn-lg" id="generate-btn" onclick="generateTTS()" {% if not settings.minimax_api_key %}disabled{% endif %}>
+                            <i class="bi bi-play-fill"></i> Generieren
+                        </button>
+                        <span id="generation-status" class="ms-3"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Processing Settings -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Audio-Verarbeitung</h5>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#audioProcessingSettings">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="audioProcessingSettings">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Intro</label>
+                                <select class="form-select" id="intro-file">
+                                    <option value="">-- Kein Intro --</option>
+                                    {% for file in internal_files %}
+                                    <option value="{{ file }}" {% if settings.tts_intro_file == file %}selected{% endif %}>
+                                        {{ file }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Musikbett</label>
+                                <select class="form-select" id="musicbed-file">
+                                    <option value="">-- Kein Musikbett --</option>
+                                    {% for file in internal_files %}
+                                    <option value="{{ file }}" {% if settings.tts_musicbed_file == file %}selected{% endif %}>
+                                        {{ file }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Outro</label>
+                                <select class="form-select" id="outro-file">
+                                    <option value="">-- Kein Outro --</option>
+                                    {% for file in internal_files %}
+                                    <option value="{{ file }}" {% if settings.tts_outro_file == file %}selected{% endif %}>
+                                        {{ file }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Crossfade (ms)</label>
+                                <input type="number" class="form-control" id="crossfade-ms"
+                                       value="{{ settings.tts_crossfade_ms }}" min="0" max="2000" step="50">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Musikbett-Lautst. (%)</label>
+                                <input type="number" class="form-control" id="musicbed-volume"
+                                       value="{{ (settings.tts_musicbed_volume * 100)|int }}" min="0" max="100" step="5">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Ziel-Lautst. (dBFS)</label>
+                                <input type="number" class="form-control" id="target-dbfs"
+                                       value="{{ settings.tts_target_dbfs }}" min="-20" max="0" step="0.5">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Hochpassfilter (Hz)</label>
+                                <input type="number" class="form-control" id="highpass-hz"
+                                       value="{{ settings.tts_highpass_hz }}" min="20" max="500" step="10">
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-outline-primary" onclick="saveAudioSettings()">
+                                <i class="bi bi-save"></i> Einstellungen speichern
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- TTS Configuration (Read-only) -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> TTS Konfiguration</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Modell:</td>
+                            <td><code>{{ settings.minimax_model or 'speech-2.6-turbo' }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Stimme:</td>
+                            <td><code>{{ settings.minimax_voice_id or 'German_PlayfulMan' }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">API Status:</td>
+                            <td>
+                                {% if settings.minimax_api_key %}
+                                <span class="badge bg-success">Konfiguriert</span>
+                                {% else %}
+                                <span class="badge bg-warning">Nicht konfiguriert</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="mt-3">
+                        <a href="{{ url_for('main.settings') }}" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="bi bi-pencil"></i> In Einstellungen bearbeiten
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Internal Files -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-folder"></i> Interne Dateien</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('file-upload').click()">
+                        <i class="bi bi-upload"></i> Hochladen
+                    </button>
+                    <input type="file" id="file-upload" class="d-none" accept=".mp3,.wav,.ogg,.flac"
+                           onchange="uploadInternalFile(this.files[0])">
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="internal-files-list">
+                        {% if internal_files %}
+                        {% for file in internal_files %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="text-truncate" style="max-width: 150px;">{{ file }}</span>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="playPreview('{{ file }}')" title="Abspielen">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteInternalFile('{{ file }}')" title="Loeschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% else %}
+                        <li class="list-group-item text-muted text-center">
+                            Keine internen Dateien vorhanden
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Generation Result -->
+            <div class="card border-0 shadow-sm mb-4" id="result-card" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle"></i> Erfolgreich generiert</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Datei:</strong> <span id="result-filename"></span></p>
+                    <p class="mb-3"><strong>Dauer:</strong> <span id="result-duration"></span></p>
+                    <audio id="result-audio" controls class="w-100"></audio>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Preview Player (hidden) -->
+<audio id="preview-player" class="d-none"></audio>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Restore last used target folder from localStorage
+(function() {
+    const savedFolder = localStorage.getItem('tts_target_folder');
+    if (savedFolder) {
+        const select = document.getElementById('target-folder');
+        if (select) {
+            for (let option of select.options) {
+                if (option.value === savedFolder) {
+                    select.value = savedFolder;
+                    break;
+                }
+            }
+        }
+    }
+})();
+
+// Save target folder selection to localStorage
+document.getElementById('target-folder').addEventListener('change', function() {
+    localStorage.setItem('tts_target_folder', this.value);
+});
+
+// Character counter
+document.getElementById('tts-text').addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('char-count').textContent = count;
+    if (count > 5000) {
+        document.getElementById('char-count').classList.add('text-danger');
+    } else {
+        document.getElementById('char-count').classList.remove('text-danger');
+    }
+});
+
+// Save audio processing settings
+async function saveAudioSettings() {
+    const settings = {
+        tts_intro_file: document.getElementById('intro-file').value,
+        tts_outro_file: document.getElementById('outro-file').value,
+        tts_musicbed_file: document.getElementById('musicbed-file').value,
+        tts_crossfade_ms: parseInt(document.getElementById('crossfade-ms').value),
+        tts_musicbed_volume: parseInt(document.getElementById('musicbed-volume').value) / 100,
+        tts_target_dbfs: parseFloat(document.getElementById('target-dbfs').value),
+        tts_highpass_hz: parseInt(document.getElementById('highpass-hz').value)
+    };
+
+    try {
+        const response = await fetch('/api/tts/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Einstellungen gespeichert', 'success');
+        } else {
+            showToast('Fehler: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showToast('Fehler beim Speichern', 'danger');
+    }
+}
+
+// Generate TTS
+async function generateTTS() {
+    const text = document.getElementById('tts-text').value.trim();
+    if (!text) {
+        showToast('Bitte Text eingeben', 'warning');
+        return;
+    }
+
+    if (text.length > 5000) {
+        showToast('Text zu lang (max. 5000 Zeichen)', 'danger');
+        return;
+    }
+
+    const btn = document.getElementById('generate-btn');
+    const status = document.getElementById('generation-status');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generiere...';
+    status.innerHTML = '<span class="text-muted">Bitte warten...</span>';
+
+    // Hide previous result
+    document.getElementById('result-card').style.display = 'none';
+
+    try {
+        const response = await fetch('/api/tts/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                target_folder: document.getElementById('target-folder').value,
+                filename: document.getElementById('filename-input').value.trim() || null
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            status.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Erfolgreich!</span>';
+
+            // Show result card
+            document.getElementById('result-filename').textContent = data.filename;
+            document.getElementById('result-duration').textContent = data.duration.toFixed(1) + 's';
+
+            // Set audio source for preview using API endpoint
+            const targetFolder = document.getElementById('target-folder').value;
+            const audioPath = `/api/audio/${targetFolder}/${data.filename}`;
+            document.getElementById('result-audio').src = audioPath;
+
+            // Save target folder for next time
+            localStorage.setItem('tts_target_folder', targetFolder);
+
+            document.getElementById('result-card').style.display = 'block';
+
+            showToast('KI Moderation erfolgreich generiert: ' + data.filename, 'success');
+        } else {
+            status.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> ${data.error}</span>`;
+            showToast('Fehler: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        console.error('TTS generation error:', error);
+        status.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Netzwerkfehler</span>';
+        showToast('Netzwerkfehler bei TTS-Generierung', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Generieren';
+    }
+}
+
+// Play internal file preview
+function playPreview(filename) {
+    const player = document.getElementById('preview-player');
+    player.src = `/api/internal-files/stream/${filename}`;
+    player.play();
+}
+
+// Upload internal file
+async function uploadInternalFile(file) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/internal-files/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Datei hochgeladen: ' + data.filename, 'success');
+            // Reload page to update file lists
+            location.reload();
+        } else {
+            showToast('Fehler: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showToast('Fehler beim Hochladen', 'danger');
+    }
+
+    // Reset file input
+    document.getElementById('file-upload').value = '';
+}
+
+// Delete internal file
+async function deleteInternalFile(filename) {
+    if (!confirm(`Datei "${filename}" wirklich loeschen?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/internal-files/${filename}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Datei geloescht: ' + filename, 'success');
+            // Reload page to update file lists
+            location.reload();
+        } else {
+            showToast('Fehler: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Fehler beim Loeschen', 'danger');
+    }
+}
+
+// Toast helper (assumes showToast is defined in base.html)
+if (typeof showToast === 'undefined') {
+    function showToast(message, type = 'info') {
+        console.log(`[${type}] ${message}`);
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

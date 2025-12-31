@@ -245,6 +245,81 @@
             </div>
         </div>
 
+        <!-- KI Moderation / TTS Settings -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-robot"></i> KI Moderation (Minimax TTS)</h5>
+            </div>
+            <div class="card-body">
+                <form id="tts-settings-form">
+                    <div class="mb-3">
+                        <label class="form-label">Minimax API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="minimax-api-key"
+                                   value="{% if stream_settings.minimax_api_key %}***{% endif %}"
+                                   placeholder="API Key eingeben">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
+                                <i class="bi bi-eye" id="api-key-icon"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            {% if stream_settings.minimax_api_key %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>
+                            {% else %}
+                            <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key hinterlegt</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Group ID</label>
+                        <input type="text" class="form-control" id="minimax-group-id"
+                               value="{{ stream_settings.minimax_group_id or '' }}"
+                               placeholder="z.B. 1883179250966602450">
+                        <div class="form-text">Die Group ID aus Ihrem Minimax-Konto</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Modell</label>
+                            <input type="text" class="form-control" id="minimax-model"
+                                   value="{{ stream_settings.minimax_model or 'speech-2.6-turbo' }}"
+                                   placeholder="speech-2.6-turbo">
+                            <small class="text-muted">z.B. speech-2.6-turbo, speech-01-turbo</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stimme (Voice ID)</label>
+                            <input type="text" class="form-control" id="minimax-voice-id"
+                                   value="{{ stream_settings.minimax_voice_id or 'German_PlayfulMan' }}"
+                                   placeholder="German_PlayfulMan">
+                            <small class="text-muted">z.B. Casual_Guy, German_PlayfulMan</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Emotion</label>
+                            <input type="text" class="form-control" id="minimax-emotion"
+                                   value="{{ stream_settings.minimax_emotion or 'happy' }}"
+                                   placeholder="happy">
+                            <small class="text-muted">z.B. happy, sad, angry, fearful, surprised, neutral</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Language Boost</label>
+                            <input type="text" class="form-control" id="minimax-language-boost"
+                                   value="{{ stream_settings.minimax_language_boost or 'German' }}"
+                                   placeholder="German">
+                            <small class="text-muted">z.B. German, English, Chinese, auto</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- API Info -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white">
@@ -627,5 +702,55 @@ function copyApiUrl(endpoint) {
         showToast('API-URL kopiert', 'success');
     });
 }
+
+// Toggle API key visibility
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('minimax-api-key');
+    const icon = document.getElementById('api-key-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+// TTS Settings Form
+document.getElementById('tts-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const apiKey = document.getElementById('minimax-api-key').value;
+
+    try {
+        const response = await fetch('/api/tts/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                minimax_api_key: apiKey,
+                minimax_group_id: document.getElementById('minimax-group-id').value,
+                minimax_model: document.getElementById('minimax-model').value,
+                minimax_voice_id: document.getElementById('minimax-voice-id').value,
+                minimax_emotion: document.getElementById('minimax-emotion').value,
+                minimax_language_boost: document.getElementById('minimax-language-boost').value
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('KI Moderation Einstellungen gespeichert', 'success');
+            // Mask the key after saving
+            if (apiKey && apiKey !== '***') {
+                document.getElementById('minimax-api-key').value = '***';
+                document.getElementById('minimax-api-key').type = 'password';
+            }
+        } else {
+            showToast(data.error || 'Fehler beim Speichern', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+});
 </script>
 {% endblock %}

@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 8  # Increment this when adding new migrations
+SCHEMA_VERSION = 9  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -278,6 +278,27 @@ def migration_v7_to_v8():
     return True
 
 
+def migration_v8_to_v9():
+    """
+    Migration from v8 to v9:
+    - Add mcp_api_key field for MCP server authentication
+    """
+    logger.info("Running migration v8 -> v9: Adding MCP API key field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'mcp_api_key',
+                                  "VARCHAR(64) DEFAULT ''"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v8 -> v9 completed successfully")
+    else:
+        logger.info("Migration v8 -> v9: No changes needed (column already exists)")
+
+    return True
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
@@ -288,6 +309,7 @@ MIGRATIONS = {
     6: migration_v5_to_v6,
     7: migration_v6_to_v7,
     8: migration_v7_to_v8,
+    9: migration_v8_to_v9,
 }
 
 

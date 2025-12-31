@@ -34,7 +34,16 @@
       "Bash(timeout:*)",
       "Bash(ping:*)",
       "Bash(cd:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(.build-for-plesk.bat)",
+      "Bash(cmd //c build-for-plesk.bat)",
+      "Bash(cmd //c \"d:\\\\stream_server\\\\build-for-plesk.bat\")",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(pip install:*)",
+      "Bash(git -C \"d:/stream_server\" status)",
+      "Bash(git -C \"d:/stream_server\" diff --stat)",
+      "Bash(git -C \"d:/stream_server\" log -3 --oneline)"
     ]
   }
 }

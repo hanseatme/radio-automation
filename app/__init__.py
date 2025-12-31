@@ -5,7 +5,7 @@ from flask_login import LoginManager
 from flask_socketio import SocketIO
 
 # Version
-VERSION = "1.9.0"
+VERSION = "2.0.8"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -38,8 +38,10 @@ def create_app():
     # Import and register blueprints
     from app.routes import main_bp
     from app.api import api_bp
+    from app.mcp_server import mcp_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(mcp_bp)
 
     # Make version available in all templates
     @app.context_processor

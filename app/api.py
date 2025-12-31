@@ -226,7 +226,11 @@ def skip_track():
 
 @api_bp.route('/queue', methods=['POST'])
 def queue_track():
-    """Add a track to the queue"""
+    """Add a track to the unified playback queue.
+
+    All files (music, moderations, jingles, etc.) go to the same queue
+    and play in the order they were added.
+    """
     from app.audio_engine import send_liquidsoap_command
 
     data = request.json
@@ -236,16 +240,12 @@ def queue_track():
     if not audio_file:
         return jsonify({'error': 'File not found'}), 404
 
-    # Determine which queue to use based on category
-    # Moderation goes to moderation_queue (higher priority, plays after current track)
-    # Everything else goes to normal queue
-    if audio_file.category in ['random-moderation', 'planned-moderation']:
-        response = send_liquidsoap_command(f'moderation_queue.push {audio_file.path}')
-    else:
-        response = send_liquidsoap_command(f'queue.push {audio_file.path}')
+    # Use unified queue for all file types - this maintains the order
+    # Items play in the order they are added: Mod A, Song A, Song B, Mod B
+    response = send_liquidsoap_command(f'queue.push {audio_file.path}')
 
     result = response is not None and 'ERROR' not in str(response)
-    return jsonify({'success': result})
+    return jsonify({'success': result, 'queued': audio_file.filename if result else None})
 
 
 @api_bp.route('/queue/clear', methods=['POST'])
@@ -849,12 +849,49 @@ def upload_recorded_moderation():
         return jsonify({'error': str(e)}), 500
 
 
-@api_bp.route('/moderation/recording/queue', methods=['GET'])
-def get_recording_queue():
-    """Get list of queued recorded moderations"""
-    from app.audio_engine import get_moderation_queue
-    queue = get_moderation_queue()
-    return jsonify(queue)
+@api_bp.route('/moderation/recording/queue', methods=['GET', 'POST'])
+def recording_queue():
+    """
+    GET: Get list of queued recorded moderations
+    POST: Add a moderation file to the queue
+
+    POST body:
+    - filepath: Full path to the audio file to queue
+    """
+    from app.audio_engine import get_moderation_queue, queue_recorded_moderation
+
+    if request.method == 'GET':
+        queue = get_moderation_queue()
+        return jsonify(queue)
+
+    # POST - queue a moderation file
+    data = request.json
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+    filepath = data.get('filepath', '').strip()
+    if not filepath:
+        return jsonify({'success': False, 'error': 'filepath is required'}), 400
+
+    # Verify file exists
+    import os
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'error': f'File not found: {filepath}'}), 404
+
+    # Queue the moderation
+    success = queue_recorded_moderation(filepath)
+
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Moderation queued successfully',
+            'filepath': filepath
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to queue moderation in Liquidsoap'
+        }), 500
 
 
 # ==================== LISTENER STATISTICS ====================
@@ -924,6 +961,7 @@ def generate_tts():
     - target_folder: Where to save the file (random-moderation, planned-moderation, misc)
     - filename: Custom filename without extension (optional, auto-generated if not provided)
     - process_audio: Whether to apply audio processing (default: true)
+    - queue_immediately: Queue the generated file immediately after creation (default: false)
     """
     from app.tts_service import generate_tts_with_processing, MinimaxTTS
 
@@ -944,6 +982,7 @@ def generate_tts():
         return jsonify({'success': False, 'error': f'Invalid target folder. Use: {", ".join(valid_folders)}'}), 400
 
     filename = (data.get('filename') or '').strip() or None
+    queue_immediately = data.get('queue_immediately', False)
 
     # Get settings
     settings = StreamSettings.get_settings()
@@ -965,6 +1004,17 @@ def generate_tts():
         # Regenerate playlists to include the new file
         from app.utils import regenerate_all_playlists
         regenerate_all_playlists()
+
+        # Queue immediately if requested
+        # Uses the normal queue (not moderation_queue) so tracks interleave with music
+        if queue_immediately and result.get('path'):
+            from app.audio_engine import queue_track
+            queued = queue_track(result['path'])
+            result['queued'] = queued
+            if queued:
+                result['message'] = 'TTS generated and queued for playback'
+            else:
+                result['queue_error'] = 'Generated but failed to queue in Liquidsoap'
 
         return jsonify(result)
     else:

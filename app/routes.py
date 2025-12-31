@@ -546,6 +546,26 @@ def change_password():
     return jsonify({'success': True})
 
 
+@main_bp.route('/settings/mcp/generate-key', methods=['POST'])
+@login_required
+def generate_mcp_key():
+    """Generate a new MCP API key"""
+    settings = StreamSettings.get_settings()
+    new_key = settings.generate_mcp_api_key()
+    db.session.commit()
+    return jsonify({'success': True, 'api_key': new_key})
+
+
+@main_bp.route('/settings/mcp/revoke-key', methods=['POST'])
+@login_required
+def revoke_mcp_key():
+    """Revoke the current MCP API key"""
+    settings = StreamSettings.get_settings()
+    settings.mcp_api_key = ''
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @main_bp.route('/history')
 @login_required
 def history():

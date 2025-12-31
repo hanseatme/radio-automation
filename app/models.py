@@ -289,6 +289,9 @@ class StreamSettings(db.Model):
     # System timezone
     timezone = db.Column(db.String(50), default='Europe/Berlin')
 
+    # MCP API Key for external AI access
+    mcp_api_key = db.Column(db.String(64), default='')
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -304,6 +307,24 @@ class StreamSettings(db.Model):
             db.session.add(settings)
             db.session.commit()
         return settings
+
+    def generate_mcp_api_key(self):
+        """Generate a new MCP API key and save it"""
+        import secrets
+        self.mcp_api_key = secrets.token_urlsafe(32)
+        return self.mcp_api_key
+
+    def validate_mcp_api_key(self, key):
+        """Validate an MCP API key using constant-time comparison"""
+        import secrets
+        if not self.mcp_api_key or not key:
+            return False
+        return secrets.compare_digest(self.mcp_api_key, key)
+
+    @property
+    def mcp_api_key_set(self):
+        """Check if MCP API key is configured (for template access)"""
+        return bool(self.mcp_api_key)
 
     def to_dict(self):
         return {
@@ -341,7 +362,9 @@ class StreamSettings(db.Model):
             'tts_musicbed_volume': self.tts_musicbed_volume,
             'tts_target_dbfs': self.tts_target_dbfs,
             'tts_highpass_hz': self.tts_highpass_hz,
-            'timezone': self.timezone or 'Europe/Berlin'
+            'timezone': self.timezone or 'Europe/Berlin',
+            # MCP Settings
+            'mcp_api_key_set': bool(self.mcp_api_key)
         }
 
 

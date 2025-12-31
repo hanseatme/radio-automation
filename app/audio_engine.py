@@ -56,36 +56,75 @@ def get_current_track():
 
 
 def get_queue_status():
-    """Get current queue from Liquidsoap with metadata - includes both normal queue and moderation queue"""
+    """Get current unified queue from Liquidsoap with metadata.
+
+    Returns items from the main queue in playback order.
+    Also includes any priority moderation queue items (shown first).
+    """
     all_items = []
 
-    # Get normal queue (jingles, promos, ads, etc.)
-    response = send_liquidsoap_command('queue.queue')
-    if response and 'ERROR' not in response:
+    def parse_queue_response(response, queue_type='normal'):
+        """Parse queue response and extract items with metadata.
+
+        Liquidsoap returns request IDs on one line separated by spaces:
+        '5 6 7 8 9 10\\r\\nEND\\r\\n'
+        """
+        items = []
+        if not response or 'ERROR' in response:
+            return items
+
+        # Clean up response and extract all tokens
         lines = response.strip().split('\n')
-        request_ids = [line.strip() for line in lines if line.strip() and line.strip() != 'END' and line.strip().isdigit()]
+        for line in lines:
+            line = line.strip()
+            if not line or line == 'END':
+                continue
 
-        for rid in request_ids:
-            metadata = get_request_metadata(rid)
-            if metadata:
-                metadata['queue_type'] = 'normal'
-                all_items.append(metadata)
-            else:
-                all_items.append({'rid': rid, 'title': f'Request #{rid}', 'artist': '', 'filename': '', 'queue_type': 'normal'})
+            # Split by spaces - Liquidsoap returns IDs space-separated on one line
+            tokens = line.split()
+            for token in tokens:
+                token = token.strip()
+                if not token or token == 'END':
+                    continue
 
-    # Get moderation queue (random-moderation, planned-moderation)
+                # Try to parse as request ID (numeric)
+                if token.isdigit():
+                    rid = token
+                    metadata = get_request_metadata(rid)
+                    if metadata:
+                        metadata['queue_type'] = queue_type
+                        items.append(metadata)
+                    else:
+                        items.append({
+                            'rid': rid,
+                            'title': f'Request #{rid}',
+                            'artist': '',
+                            'filename': '',
+                            'queue_type': queue_type
+                        })
+                # Some Liquidsoap versions return URIs directly
+                elif token.startswith('/'):
+                    filename = token.split('/')[-1]
+                    items.append({
+                        'rid': None,
+                        'title': filename,
+                        'artist': '',
+                        'filename': filename,
+                        'path': token,
+                        'queue_type': queue_type
+                    })
+
+        return items
+
+    # Get priority moderation queue first (these play before regular queue)
     mod_response = send_liquidsoap_command('moderation_queue.queue')
-    if mod_response and 'ERROR' not in mod_response:
-        lines = mod_response.strip().split('\n')
-        request_ids = [line.strip() for line in lines if line.strip() and line.strip() != 'END' and line.strip().isdigit()]
+    priority_items = parse_queue_response(mod_response, 'priority')
+    all_items.extend(priority_items)
 
-        for rid in request_ids:
-            metadata = get_request_metadata(rid)
-            if metadata:
-                metadata['queue_type'] = 'moderation'
-                all_items.append(metadata)
-            else:
-                all_items.append({'rid': rid, 'title': f'Moderation #{rid}', 'artist': '', 'filename': '', 'queue_type': 'moderation'})
+    # Get main unified queue
+    response = send_liquidsoap_command('queue.queue')
+    queue_items = parse_queue_response(response, 'normal')
+    all_items.extend(queue_items)
 
     return all_items
 
@@ -122,9 +161,13 @@ def remove_from_queue(rid):
 
 
 def clear_queue():
-    """Clear the entire queue"""
-    response = send_liquidsoap_command('queue.flush_and_skip')
-    return response is not None and 'ERROR' not in str(response)
+    """Clear both the main queue and priority moderation queue"""
+    # Clear main unified queue
+    result1 = send_liquidsoap_command('queue.flush_and_skip')
+    # Also clear priority moderation queue
+    result2 = send_liquidsoap_command('moderation_queue.flush_and_skip')
+    return (result1 is not None and 'ERROR' not in str(result1)) or \
+           (result2 is not None and 'ERROR' not in str(result2))
 
 
 def get_listener_count():
@@ -159,28 +202,27 @@ def skip_current_track():
 
 
 def queue_track(filepath):
-    """Add a track to the queue"""
-    response = send_liquidsoap_command(f'push {filepath}')
-    return response is not None
+    """Add a track to the normal playback queue (not the priority moderation queue).
+    This allows tracks to be interleaved with regular music rotation.
+    """
+    response = send_liquidsoap_command(f'queue.push {filepath}')
+    return response is not None and 'ERROR' not in str(response)
 
 
 def insert_from_category(category):
-    """Insert a random file from a category into the queue"""
+    """Insert a random file from a category into the unified queue.
+
+    All categories use the same queue to maintain playback order.
+    Items play in the order they are added.
+    """
     from app.utils import get_random_file_from_category
 
     # Get a random file from the database
     audio_file = get_random_file_from_category(category)
 
     if audio_file and audio_file.path:
-        # Determine which queue to use based on category
-        # Moderation goes to moderation_queue (higher priority, plays after current track)
-        # Everything else goes to normal queue
-        if category in ['random-moderation', 'planned-moderation']:
-            queue_command = f'moderation_queue.push {audio_file.path}'
-        else:
-            queue_command = f'queue.push {audio_file.path}'
-
-        response = send_liquidsoap_command(queue_command)
+        # Use unified queue for all categories - maintains order
+        response = send_liquidsoap_command(f'queue.push {audio_file.path}')
         if response is not None and 'ERROR' not in str(response):
             print(f"[Rotation] Queued {category}: {audio_file.filename}")
             return True
@@ -201,15 +243,6 @@ def insert_from_category(category):
         response = send_liquidsoap_command(command)
         return response is not None
     return False
-
-
-def clear_queue():
-    """Clear the current queue"""
-    # Liquidsoap doesn't have a direct clear command,
-    # we'd need to skip until empty
-    while get_queue_status():
-        skip_current_track()
-    return True
 
 
 def update_output_settings(settings):

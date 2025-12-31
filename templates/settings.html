@@ -376,6 +376,117 @@
                 </table>
             </div>
         </div>
+
+        <!-- MCP Server -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-robot"></i> MCP Server (KI-Integration)</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Model Context Protocol:</strong> Ermöglicht KI-Assistenten (wie Claude) die Steuerung des Radiosenders per API.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>MCP Server URL</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light" id="mcp-server-url" readonly
+                               value="">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyMcpUrl()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">Diese URL in der MCP-Konfiguration des KI-Assistenten eintragen</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>API Key</strong></label>
+                    <div class="input-group">
+                        <input type="password" class="form-control bg-light" id="mcp-api-key" readonly
+                               value="{% if stream_settings.mcp_api_key_set %}{{ stream_settings.mcp_api_key or '****************************************' }}{% else %}Kein API Key generiert{% endif %}">
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleMcpKeyVisibility()" {% if not stream_settings.mcp_api_key_set %}disabled{% endif %}>
+                            <i class="bi bi-eye" id="mcp-key-icon"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        {% if stream_settings.mcp_api_key_set %}
+                        <span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>
+                        {% else %}
+                        <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key generiert</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-primary" onclick="generateMcpKey()">
+                        <i class="bi bi-key"></i> Neuen Key generieren
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="revokeMcpKey()" {% if not stream_settings.mcp_api_key_set %}disabled{% endif %} id="revoke-mcp-key-btn">
+                        <i class="bi bi-trash"></i> Key widerrufen
+                    </button>
+                </div>
+
+                <hr>
+                <h6 class="mb-3"><i class="bi bi-tools me-1"></i> Verfügbare MCP Tools</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tool</th>
+                                <th>Beschreibung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>list_files</code></td>
+                                <td>Audiodateien einer Kategorie auflisten</td>
+                            </tr>
+                            <tr>
+                                <td><code>search_song</code></td>
+                                <td>Songs nach Titel/Interpret suchen</td>
+                            </tr>
+                            <tr>
+                                <td><code>add_to_queue</code></td>
+                                <td>Datei zur Playlist hinzufügen</td>
+                            </tr>
+                            <tr>
+                                <td><code>get_queue</code></td>
+                                <td>Aktuelle Playlist abrufen</td>
+                            </tr>
+                            <tr>
+                                <td><code>upload_file</code></td>
+                                <td>Audiodatei hochladen</td>
+                            </tr>
+                            <tr>
+                                <td><code>generate_moderation</code></td>
+                                <td>KI-Moderation per TTS erstellen</td>
+                            </tr>
+                            <tr>
+                                <td><code>queue_moderation</code></td>
+                                <td>Moderation in Prioritätswarteschlange</td>
+                            </tr>
+                            <tr>
+                                <td><code>get_upcoming_shows</code></td>
+                                <td>Nächste geplante Sendungen</td>
+                            </tr>
+                            <tr>
+                                <td><code>get_current_time</code></td>
+                                <td>Aktuelle Zeit in Sender-Zeitzone</td>
+                            </tr>
+                            <tr>
+                                <td><code>list_rotation_rules</code></td>
+                                <td>Rotationsregeln auflisten</td>
+                            </tr>
+                            <tr>
+                                <td><code>toggle_rotation_rule</code></td>
+                                <td>Rotationsregel aktivieren/deaktivieren</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -466,7 +577,7 @@
                     </tr>
                     <tr>
                         <td><strong>Version:</strong></td>
-                        <td>1.1.0</td>
+                        <td>{{ app_version }}</td>
                     </tr>
                     <tr>
                         <td><strong>Unterstützte Formate:</strong></td>
@@ -777,5 +888,88 @@ document.getElementById('tts-settings-form').addEventListener('submit', async fu
         showToast('Fehler: ' + error, 'danger');
     }
 });
+
+// MCP Server Functions
+document.addEventListener('DOMContentLoaded', function() {
+    // Set MCP Server URL (SSE endpoint for Claude Desktop)
+    const mcpUrl = window.location.protocol + '//' + window.location.host + '/mcp';
+    document.getElementById('mcp-server-url').value = mcpUrl;
+});
+
+function copyMcpUrl() {
+    const url = document.getElementById('mcp-server-url').value;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('MCP Server URL kopiert', 'success');
+    });
+}
+
+function toggleMcpKeyVisibility() {
+    const input = document.getElementById('mcp-api-key');
+    const icon = document.getElementById('mcp-key-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+async function generateMcpKey() {
+    if (!confirm('Neuen MCP API Key generieren? Der alte Key wird ungültig.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/settings/mcp/generate-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('mcp-api-key').value = data.api_key;
+            document.getElementById('mcp-api-key').type = 'text';
+            document.getElementById('mcp-key-icon').classList.replace('bi-eye', 'bi-eye-slash');
+            document.getElementById('revoke-mcp-key-btn').disabled = false;
+            document.querySelector('#mcp-api-key').closest('.mb-3').querySelector('.form-text').innerHTML =
+                '<span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>';
+            showToast('Neuer MCP API Key generiert', 'success');
+        } else {
+            showToast(data.error || 'Fehler beim Generieren', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+}
+
+async function revokeMcpKey() {
+    if (!confirm('MCP API Key wirklich widerrufen? Alle externen KI-Zugriffe werden deaktiviert.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/settings/mcp/revoke-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('mcp-api-key').value = 'Kein API Key generiert';
+            document.getElementById('mcp-api-key').type = 'password';
+            document.getElementById('revoke-mcp-key-btn').disabled = true;
+            document.querySelector('#mcp-api-key').closest('.mb-3').querySelector('.form-text').innerHTML =
+                '<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key generiert</span>';
+            showToast('MCP API Key widerrufen', 'success');
+        } else {
+            showToast(data.error || 'Fehler beim Widerrufen', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+}
 </script>
 {% endblock %}

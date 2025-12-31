@@ -255,7 +255,7 @@ def update_now_playing(title, artist, filename, category, duration, audio_file_i
     """Update the now playing information in the database"""
     from app.models import NowPlaying, PlayHistory
     from app import db
-    from datetime import datetime
+    from app.utils import get_local_now
 
     # Update NowPlaying
     NowPlaying.update(
@@ -268,10 +268,11 @@ def update_now_playing(title, artist, filename, category, duration, audio_file_i
     )
 
     # Also update SystemState for backwards compatibility
+    now = get_local_now()
     SystemState.set('current_title', title)
     SystemState.set('current_artist', artist)
     SystemState.set('current_filename', filename)
-    SystemState.set('current_started', datetime.utcnow().isoformat())
+    SystemState.set('current_started', now.isoformat())
 
     # Log to play history
     history = PlayHistory(
@@ -280,7 +281,8 @@ def update_now_playing(title, artist, filename, category, duration, audio_file_i
         title=title,
         artist=artist,
         category=category,
-        triggered_by='rotation'
+        triggered_by='rotation',
+        played_at=now.replace(tzinfo=None)
     )
     db.session.add(history)
     db.session.commit()

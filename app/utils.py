@@ -1,6 +1,8 @@
 import os
 import subprocess
 import json
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from flask import current_app
 from mutagen import File as MutagenFile
 from mutagen.mp3 import MP3
@@ -330,3 +332,43 @@ def regenerate_all_playlists():
         generate_playlist_file(category)
 
     print('All playlists regenerated', flush=True)
+
+
+def get_local_now():
+    """Get current datetime in the configured timezone.
+
+    Returns a timezone-aware datetime object in the configured timezone.
+    Falls back to Europe/Berlin if no timezone is configured.
+    """
+    try:
+        from app.models import StreamSettings
+        settings = StreamSettings.get_settings()
+        tz_name = settings.timezone or 'Europe/Berlin'
+    except Exception:
+        tz_name = 'Europe/Berlin'
+
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        # Fallback to UTC if timezone is invalid
+        tz = ZoneInfo('UTC')
+
+    return datetime.now(tz)
+
+
+def get_timezone():
+    """Get the configured timezone as a ZoneInfo object.
+
+    Returns ZoneInfo for the configured timezone or Europe/Berlin as fallback.
+    """
+    try:
+        from app.models import StreamSettings
+        settings = StreamSettings.get_settings()
+        tz_name = settings.timezone or 'Europe/Berlin'
+    except Exception:
+        tz_name = 'Europe/Berlin'
+
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:
+        return ZoneInfo('UTC')

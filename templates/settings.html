@@ -191,6 +191,30 @@
                         </select>
                         <small class="text-muted">Manuell eine aktive Sendung setzen</small>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-clock me-1"></i> Zeitzone</label>
+                        <select class="form-select" id="timezone">
+                            <option value="Europe/Berlin" {{ 'selected' if stream_settings.timezone == 'Europe/Berlin' or not stream_settings.timezone }}>Europe/Berlin (MEZ/MESZ)</option>
+                            <option value="Europe/Vienna" {{ 'selected' if stream_settings.timezone == 'Europe/Vienna' }}>Europe/Vienna (MEZ/MESZ)</option>
+                            <option value="Europe/Zurich" {{ 'selected' if stream_settings.timezone == 'Europe/Zurich' }}>Europe/Zurich (MEZ/MESZ)</option>
+                            <option value="Europe/Amsterdam" {{ 'selected' if stream_settings.timezone == 'Europe/Amsterdam' }}>Europe/Amsterdam (MEZ/MESZ)</option>
+                            <option value="Europe/Paris" {{ 'selected' if stream_settings.timezone == 'Europe/Paris' }}>Europe/Paris (MEZ/MESZ)</option>
+                            <option value="Europe/London" {{ 'selected' if stream_settings.timezone == 'Europe/London' }}>Europe/London (GMT/BST)</option>
+                            <option value="Europe/Madrid" {{ 'selected' if stream_settings.timezone == 'Europe/Madrid' }}>Europe/Madrid (MEZ/MESZ)</option>
+                            <option value="Europe/Rome" {{ 'selected' if stream_settings.timezone == 'Europe/Rome' }}>Europe/Rome (MEZ/MESZ)</option>
+                            <option value="Europe/Warsaw" {{ 'selected' if stream_settings.timezone == 'Europe/Warsaw' }}>Europe/Warsaw (MEZ/MESZ)</option>
+                            <option value="Europe/Prague" {{ 'selected' if stream_settings.timezone == 'Europe/Prague' }}>Europe/Prague (MEZ/MESZ)</option>
+                            <option value="Europe/Moscow" {{ 'selected' if stream_settings.timezone == 'Europe/Moscow' }}>Europe/Moscow (MSK)</option>
+                            <option value="America/New_York" {{ 'selected' if stream_settings.timezone == 'America/New_York' }}>America/New_York (EST/EDT)</option>
+                            <option value="America/Chicago" {{ 'selected' if stream_settings.timezone == 'America/Chicago' }}>America/Chicago (CST/CDT)</option>
+                            <option value="America/Los_Angeles" {{ 'selected' if stream_settings.timezone == 'America/Los_Angeles' }}>America/Los_Angeles (PST/PDT)</option>
+                            <option value="Asia/Tokyo" {{ 'selected' if stream_settings.timezone == 'Asia/Tokyo' }}>Asia/Tokyo (JST)</option>
+                            <option value="Asia/Shanghai" {{ 'selected' if stream_settings.timezone == 'Asia/Shanghai' }}>Asia/Shanghai (CST)</option>
+                            <option value="Australia/Sydney" {{ 'selected' if stream_settings.timezone == 'Australia/Sydney' }}>Australia/Sydney (AEST/AEDT)</option>
+                            <option value="UTC" {{ 'selected' if stream_settings.timezone == 'UTC' }}>UTC</option>
+                        </select>
+                        <small class="text-muted">Zeitzone für Zeitpläne und Rotationsregeln</small>
+                    </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save"></i> Speichern
                     </button>
@@ -610,7 +634,8 @@ document.getElementById('station-settings-form').addEventListener('submit', asyn
             body: JSON.stringify({
                 station_name: document.getElementById('station-name').value,
                 default_show_name: document.getElementById('default-show-name').value,
-                current_show_id: document.getElementById('current-show').value || null
+                current_show_id: document.getElementById('current-show').value || null,
+                timezone: document.getElementById('timezone').value
             })
         });
 

@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 7  # Increment this when adding new migrations
+SCHEMA_VERSION = 8  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -257,6 +257,27 @@ def migration_v6_to_v7():
     return True
 
 
+def migration_v7_to_v8():
+    """
+    Migration from v7 to v8:
+    - Add timezone field for system timezone configuration
+    """
+    logger.info("Running migration v7 -> v8: Adding timezone field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'timezone',
+                                  "VARCHAR(50) DEFAULT 'Europe/Berlin'"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v7 -> v8 completed successfully")
+    else:
+        logger.info("Migration v7 -> v8: No changes needed (column already exists)")
+
+    return True
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
@@ -266,6 +287,7 @@ MIGRATIONS = {
     5: migration_v4_to_v5,
     6: migration_v5_to_v6,
     7: migration_v6_to_v7,
+    8: migration_v7_to_v8,
 }
 
 

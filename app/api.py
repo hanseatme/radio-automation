@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, Response
 from app import db, socketio
 from app.models import AudioFile, PlayHistory, SystemState, StreamSettings, NowPlaying, InstantJingle, ModerationSettings
+from app.utils import get_local_now
 
 api_bp = Blueprint('api', __name__)
 
@@ -23,7 +24,7 @@ def update_now_playing():
     # Update play count and last played
     if audio_file:
         audio_file.play_count += 1
-        audio_file.last_played = datetime.utcnow()
+        audio_file.last_played = get_local_now().replace(tzinfo=None)
         title = audio_file.title or title or filename
         artist = audio_file.artist or artist
         duration = audio_file.duration or duration
@@ -50,7 +51,8 @@ def update_now_playing():
             title=title,
             artist=artist,
             category=category,
-            triggered_by='rotation'
+            triggered_by='rotation',
+            played_at=get_local_now().replace(tzinfo=None)
         )
         db.session.add(history)
     else:
@@ -79,7 +81,7 @@ def update_now_playing():
         'duration': duration,
         'show': show_name,
         'station': settings.station_name,
-        'started_at': datetime.utcnow().isoformat()
+        'started_at': get_local_now().isoformat()
     })
 
     return jsonify({'success': True})
@@ -390,7 +392,7 @@ def internal_track_change():
 
         # Update play count
         audio_file.play_count += 1
-        audio_file.last_played = datetime.utcnow()
+        audio_file.last_played = get_local_now().replace(tzinfo=None)
 
         # Update NowPlaying
         NowPlaying.update(
@@ -409,7 +411,8 @@ def internal_track_change():
             title=title,
             artist=artist,
             category=category,
-            triggered_by='rotation'
+            triggered_by='rotation',
+            played_at=get_local_now().replace(tzinfo=None)
         )
         db.session.add(history)
         db.session.commit()
@@ -798,7 +801,7 @@ def upload_recorded_moderation():
     os.makedirs(recordings_dir, exist_ok=True)
 
     # Generate unique filename
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    timestamp = get_local_now().strftime('%Y%m%d_%H%M%S')
     base_name = f'moderation_{timestamp}'
 
     # Save the uploaded webm file temporarily

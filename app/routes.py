@@ -464,6 +464,10 @@ def save_stream_settings():
     if 'current_show_id' in data:
         settings.current_show_id = int(data['current_show_id']) if data['current_show_id'] else None
 
+    # Timezone
+    if 'timezone' in data:
+        settings.timezone = data['timezone']
+
     # Crossfade settings
     if 'crossfade_music_fade_in' in data:
         settings.crossfade_music_fade_in = float(data['crossfade_music_fade_in'])

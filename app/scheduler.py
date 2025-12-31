@@ -87,9 +87,9 @@ def check_rotation_rules(app):
     with app.app_context():
         from app.models import RotationRule, SystemState
         from app.audio_engine import insert_from_category
-        from app.utils import get_random_file_from_category
+        from app.utils import get_random_file_from_category, get_local_now
 
-        now = datetime.now()
+        now = get_local_now()
         current_minute = now.minute
         current_hour = now.hour
         current_day = now.weekday()
@@ -159,9 +159,9 @@ def increment_song_counter():
     from flask import current_app
     from app.models import RotationRule, SystemState
     from app.audio_engine import insert_from_category
-    from datetime import datetime
+    from app.utils import get_local_now
 
-    now = datetime.now()
+    now = get_local_now()
     current_day = now.weekday()
 
     rules = RotationRule.query.filter_by(
@@ -200,10 +200,13 @@ def check_scheduled_shows(app):
     with app.app_context():
         from app.models import Schedule, db
         from app.audio_engine import queue_track
+        from app.utils import get_local_now
 
-        now = datetime.now()
-        window_start = now - timedelta(minutes=1)
-        window_end = now + timedelta(minutes=1)
+        now = get_local_now()
+        # Convert to naive for database comparisons
+        now_for_db = now.replace(tzinfo=None)
+        window_start = now_for_db - timedelta(minutes=1)
+        window_end = now_for_db + timedelta(minutes=1)
 
         # Find schedules that should start now
         schedules = Schedule.query.filter(
@@ -215,7 +218,7 @@ def check_scheduled_shows(app):
         for schedule in schedules:
             # Check if already run recently
             if schedule.last_run:
-                if (now - schedule.last_run).total_seconds() < 120:
+                if (now_for_db - schedule.last_run).total_seconds() < 120:
                     continue
 
             # Check day of week for weekly repeats
@@ -231,7 +234,7 @@ def check_scheduled_shows(app):
                     if item.audio_file:
                         queue_track(item.audio_file.path)
 
-            schedule.last_run = now
+            schedule.last_run = now_for_db
 
             # Handle repeat scheduling
             if schedule.repeat_type == 'daily':
@@ -267,6 +270,7 @@ def poll_current_track(app):
     with app.app_context():
         from app.models import AudioFile, NowPlaying, PlayHistory, SystemState, StreamSettings, db
         from app.audio_engine import send_liquidsoap_command
+        from app.utils import get_local_now
         from app import socketio
 
         # Get currently playing metadata from Radio_Automation source
@@ -382,7 +386,8 @@ def poll_current_track(app):
 
             # Update play count
             audio_file.play_count += 1
-            audio_file.last_played = datetime.now()
+            # Store as naive datetime (local time) for database compatibility
+            audio_file.last_played = get_local_now().replace(tzinfo=None)
 
         if not title:
             title = filename
@@ -404,7 +409,8 @@ def poll_current_track(app):
             title=title,
             artist=artist,
             category=category,
-            triggered_by='rotation'
+            triggered_by='rotation',
+            played_at=get_local_now().replace(tzinfo=None)
         )
         db.session.add(history)
         db.session.commit()
@@ -425,7 +431,7 @@ def poll_current_track(app):
             'duration': duration,
             'show': show_name,
             'station': settings.station_name,
-            'started_at': datetime.now().isoformat()
+            'started_at': get_local_now().isoformat()
         })
 
 

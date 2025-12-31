@@ -286,6 +286,9 @@ class StreamSettings(db.Model):
     tts_target_dbfs = db.Column(db.Float, default=-3.0)
     tts_highpass_hz = db.Column(db.Integer, default=80)
 
+    # System timezone
+    timezone = db.Column(db.String(50), default='Europe/Berlin')
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -337,7 +340,8 @@ class StreamSettings(db.Model):
             'tts_crossfade_ms': self.tts_crossfade_ms,
             'tts_musicbed_volume': self.tts_musicbed_volume,
             'tts_target_dbfs': self.tts_target_dbfs,
-            'tts_highpass_hz': self.tts_highpass_hz
+            'tts_highpass_hz': self.tts_highpass_hz,
+            'timezone': self.timezone or 'Europe/Berlin'
         }
 
 

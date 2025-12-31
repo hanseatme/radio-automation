@@ -256,6 +256,141 @@ def clear_queue():
     return jsonify({'success': result})
 
 
+@api_bp.route('/queue/status', methods=['GET'])
+def get_queue_status():
+    """Get current queue status with metadata and timing info"""
+    from app.audio_engine import get_queue_status as do_get_queue_status, get_now_playing
+    from app.models import NowPlaying
+
+    queue_items = do_get_queue_status()
+    now_playing = get_now_playing()
+
+    # Calculate time until next item
+    time_until_next = 0
+    if now_playing:
+        duration = now_playing.get('duration', 0)
+        elapsed = now_playing.get('elapsed', 0)
+        if duration and elapsed:
+            time_until_next = max(0, duration - elapsed)
+
+    return jsonify({
+        'queue': queue_items,
+        'count': len(queue_items),
+        'time_until_next': time_until_next,
+        'now_playing': now_playing
+    })
+
+
+@api_bp.route('/queue/remove/<int:index>', methods=['DELETE'])
+def remove_queue_item(index):
+    """Remove a specific item from the queue by its position (0-indexed)
+
+    Note: Liquidsoap doesn't support direct removal, so we rebuild the queue
+    """
+    from app.audio_engine import get_queue_status as do_get_queue_status, send_liquidsoap_command
+
+    # Get current queue
+    queue_items = do_get_queue_status()
+
+    if index < 0 or index >= len(queue_items):
+        return jsonify({'error': 'Index out of range'}), 400
+
+    # Get the paths/files of items to keep
+    items_to_keep = []
+    for i, item in enumerate(queue_items):
+        if i != index:
+            path = item.get('path') or item.get('filename')
+            if path:
+                # If it's just a filename, try to get full path
+                if not path.startswith('/'):
+                    # Try to find in database
+                    audio = AudioFile.query.filter_by(filename=path).first()
+                    if audio:
+                        path = audio.path
+                    else:
+                        continue
+                items_to_keep.append({
+                    'path': path,
+                    'queue_type': item.get('queue_type', 'normal')
+                })
+
+    # Clear both queues
+    # Note: flush_and_skip will skip the current track - this is a Liquidsoap limitation
+    # There is no way to clear the queue without affecting the current track
+    send_liquidsoap_command('queue.flush_and_skip')
+    send_liquidsoap_command('moderation_queue.flush_and_skip')
+
+    # Re-add items (skip the removed one)
+    for item in items_to_keep:
+        if item['queue_type'] == 'priority':
+            send_liquidsoap_command(f"moderation_queue.push {item['path']}")
+        else:
+            send_liquidsoap_command(f"queue.push {item['path']}")
+
+    return jsonify({
+        'success': True,
+        'removed_index': index,
+        'remaining_count': len(items_to_keep)
+    })
+
+
+@api_bp.route('/queue/reorder', methods=['POST'])
+def reorder_queue():
+    """Reorder queue items
+
+    Expects: { "order": [2, 0, 1, 3] } - new order by original indices
+    """
+    from app.audio_engine import get_queue_status as do_get_queue_status, send_liquidsoap_command
+
+    data = request.json
+    new_order = data.get('order', [])
+
+    # Get current queue
+    queue_items = do_get_queue_status()
+
+    if len(new_order) != len(queue_items):
+        return jsonify({'error': 'Order array length must match queue length'}), 400
+
+    # Validate indices
+    if set(new_order) != set(range(len(queue_items))):
+        return jsonify({'error': 'Invalid indices in order array'}), 400
+
+    # Build new queue order
+    reordered_items = []
+    for idx in new_order:
+        item = queue_items[idx]
+        path = item.get('path') or item.get('filename')
+        if path:
+            if not path.startswith('/'):
+                audio = AudioFile.query.filter_by(filename=path).first()
+                if audio:
+                    path = audio.path
+                else:
+                    continue
+            reordered_items.append({
+                'path': path,
+                'queue_type': item.get('queue_type', 'normal')
+            })
+
+    # Clear both queues
+    # Note: flush_and_skip will skip the current track - this is a Liquidsoap limitation
+    # There is no way to clear the queue without affecting the current track
+    send_liquidsoap_command('queue.flush_and_skip')
+    send_liquidsoap_command('moderation_queue.flush_and_skip')
+
+    # Re-add in new order
+    for item in reordered_items:
+        if item['queue_type'] == 'priority':
+            send_liquidsoap_command(f"moderation_queue.push {item['path']}")
+        else:
+            send_liquidsoap_command(f"queue.push {item['path']}")
+
+    return jsonify({
+        'success': True,
+        'new_order': new_order
+    })
+
+
 @api_bp.route('/insert/<category>', methods=['POST'])
 def insert_category(category):
     """Insert a random file from a category"""

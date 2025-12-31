@@ -228,6 +228,49 @@
     margin-bottom: 0;
 }
 
+.queue-item .remove-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(var(--danger-rgb), 0.1);
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.queue-item:hover .remove-btn {
+    opacity: 1;
+}
+
+.queue-item .remove-btn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Queue Timer */
+.queue-timer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--primary-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+}
+
+.queue-timer .timer-icon {
+    color: var(--primary);
+}
+
+.queue-timer .timer-value {
+    font-weight: 600;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+}
+
 .queue-number {
     width: 24px;
     height: 24px;
@@ -261,8 +304,23 @@
     color: var(--text-muted);
 }
 
+.queue-time-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    margin-left: auto;
+}
+
+.queue-start-time {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success);
+    font-variant-numeric: tabular-nums;
+}
+
 .queue-duration {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     flex-shrink: 0;
 }
@@ -476,41 +534,25 @@
         <!-- Queue -->
         <div class="compact-card">
             <div class="compact-card-header">
-                <h6><i class="bi bi-list-ul"></i> Warteschlange</h6>
-                {% if queue_status and queue_status|length > 0 %}
-                <button class="btn btn-sm btn-outline-danger" onclick="clearQueue()">
+                <h6><i class="bi bi-list-ul"></i> Warteschlange <span class="badge bg-secondary ms-2" id="queue-count">{{ queue_status|length if queue_status else 0 }}</span></h6>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearQueue()" id="clear-queue-btn" style="display: {{ 'block' if queue_status and queue_status|length > 0 else 'none' }}">
                     <i class="bi bi-trash3"></i>
                 </button>
-                {% endif %}
             </div>
             <div class="compact-card-body">
+                <!-- Timer bis zum nächsten Element -->
+                <div class="queue-timer" id="queue-timer" style="display: none;">
+                    <i class="bi bi-hourglass-split timer-icon"></i>
+                    <span>Nächstes Element in:</span>
+                    <span class="timer-value" id="next-item-timer">--:--</span>
+                </div>
+
                 <div id="queue-list" class="scrollable-content">
-                    {% if queue_status and queue_status|length > 0 %}
-                    {% for item in queue_status %}
-                    <div class="queue-item">
-                        <div class="queue-number">{{ loop.index }}</div>
-                        <div class="queue-info">
-                            <div class="title">
-                                {{ item.title or 'Unbekannt' }}
-                                {% if item.queue_type == 'moderation' %}
-                                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MOD</span>
-                                {% endif %}
-                            </div>
-                            {% if item.artist %}
-                            <div class="artist">{{ item.artist }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="queue-duration">
-                            <i class="bi bi-clock me-1"></i>{{ item.duration|default('--:--') }}
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <div class="empty-state">
+                    <!-- Queue wird dynamisch geladen -->
+                    <div class="empty-state" id="queue-empty">
                         <i class="bi bi-inbox d-block"></i>
                         <p>Warteschlange ist leer<br><small>Titel werden aus der Rotation gespielt</small></p>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -651,6 +693,134 @@
 
 {% block extra_js %}
 <script>
+// Queue state
+let currentQueue = [];
+let timeUntilNext = 0;
+
+// Format seconds to MM:SS
+function formatTime(seconds) {
+    if (!seconds || seconds < 0) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Format time as HH:MM
+function formatClockTime(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${mins}`;
+}
+
+// Calculate start time for a queue item
+function calculateStartTime(index) {
+    let secondsFromNow = timeUntilNext;
+    for (let i = 0; i < index; i++) {
+        secondsFromNow += (currentQueue[i].duration || 0);
+    }
+    const startTime = new Date(Date.now() + secondsFromNow * 1000);
+    return formatClockTime(startTime);
+}
+
+// Render queue item HTML
+function renderQueueItem(item, index) {
+    const title = item.title || 'Unbekannt';
+    const artist = item.artist || '';
+    const queueType = item.queue_type || 'normal';
+    const badge = queueType === 'priority' ? '<span class="badge bg-warning ms-1" style="font-size: 0.65rem;">PRIO</span>' : '';
+    const startTime = calculateStartTime(index);
+
+    return `
+        <div class="queue-item" data-index="${index}">
+            <div class="queue-number">${index + 1}</div>
+            <div class="queue-info">
+                <div class="title">${title}${badge}</div>
+                ${artist ? `<div class="artist">${artist}</div>` : ''}
+            </div>
+            <div class="queue-time-info">
+                <div class="queue-start-time" title="Voraussichtliche Startzeit">
+                    <i class="bi bi-play-fill me-1"></i>${startTime}
+                </div>
+                <div class="queue-duration">
+                    <i class="bi bi-clock me-1"></i>${formatTime(item.duration) || '--:--'}
+                </div>
+            </div>
+            <button class="remove-btn" onclick="removeQueueItem(${index})" title="Entfernen">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    `;
+}
+
+// Update queue display
+function updateQueueDisplay() {
+    const queueList = document.getElementById('queue-list');
+    const queueEmpty = document.getElementById('queue-empty');
+    const queueCount = document.getElementById('queue-count');
+    const clearBtn = document.getElementById('clear-queue-btn');
+    const queueTimer = document.getElementById('queue-timer');
+
+    if (currentQueue.length === 0) {
+        queueList.innerHTML = `
+            <div class="empty-state" id="queue-empty">
+                <i class="bi bi-inbox d-block"></i>
+                <p>Warteschlange ist leer<br><small>Titel werden aus der Rotation gespielt</small></p>
+            </div>
+        `;
+        clearBtn.style.display = 'none';
+        queueTimer.style.display = 'none';
+    } else {
+        queueList.innerHTML = currentQueue.map((item, idx) => renderQueueItem(item, idx)).join('');
+        clearBtn.style.display = 'block';
+        queueTimer.style.display = 'flex';
+    }
+
+    queueCount.textContent = currentQueue.length;
+}
+
+// Update timer display
+function updateTimerDisplay() {
+    const timerEl = document.getElementById('next-item-timer');
+    if (timerEl) {
+        timerEl.textContent = formatTime(timeUntilNext);
+    }
+}
+
+// Fetch queue status from API
+async function fetchQueueStatus() {
+    try {
+        const response = await fetch('/api/queue/status');
+        const data = await response.json();
+
+        currentQueue = data.queue || [];
+        timeUntilNext = data.time_until_next || 0;
+
+        updateQueueDisplay();
+        updateTimerDisplay();
+    } catch (error) {
+        console.error('Error fetching queue:', error);
+    }
+}
+
+// Remove item from queue
+async function removeQueueItem(index) {
+    try {
+        const response = await fetch(`/api/queue/remove/${index}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Element entfernt', 'success');
+            fetchQueueStatus();
+        } else {
+            showToast(data.error || 'Fehler beim Entfernen', 'danger');
+        }
+    } catch (error) {
+        showToast('Fehler: ' + error, 'danger');
+    }
+}
+
 // Insert category
 function insertCategory(category) {
     fetch('/api/insert/' + category, { method: 'POST' })
@@ -658,7 +828,7 @@ function insertCategory(category) {
         .then(data => {
             if (data.success) {
                 showToast('Element aus ' + category + ' eingefugt', 'success');
-                setTimeout(() => location.reload(), 1000);
+                fetchQueueStatus();
             } else {
                 showToast('Fehler beim Einfugen', 'danger');
             }
@@ -674,7 +844,7 @@ function clearQueue() {
             .then(data => {
                 if (data.success) {
                     showToast('Warteschlange geleert', 'success');
-                    setTimeout(() => location.reload(), 500);
+                    fetchQueueStatus();
                 } else {
                     showToast('Fehler beim Leeren', 'danger');
                 }
@@ -753,12 +923,26 @@ function updateDashListeners() {
         .catch(() => {});
 }
 
+// Countdown timer (runs every second)
+function tickTimer() {
+    if (timeUntilNext > 0) {
+        timeUntilNext -= 1;
+        updateTimerDisplay();
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
+    // Initial fetch
+    fetchQueueStatus();
     updateModStatus();
     updateDashListeners();
+
+    // Periodic updates
+    setInterval(fetchQueueStatus, 3000);  // Queue every 3 seconds
     setInterval(updateModStatus, 3000);
     setInterval(updateDashListeners, 5000);
+    setInterval(tickTimer, 1000);  // Timer every second
 });
 </script>
 {% endblock %}

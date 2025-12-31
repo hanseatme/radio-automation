@@ -55,6 +55,25 @@ def get_current_track():
     }
 
 
+def get_now_playing():
+    """Get current track info with timing from NowPlaying model"""
+    from app.models import NowPlaying
+    np = NowPlaying.get_current()
+    return np.to_dict()
+
+
+def get_duration_from_database(filename):
+    """Get duration for a file from the AudioFile database"""
+    from app.models import AudioFile
+    # Extract just the filename if it's a full path
+    if '/' in filename:
+        filename = filename.split('/')[-1]
+    audio_file = AudioFile.query.filter_by(filename=filename).first()
+    if audio_file and audio_file.duration:
+        return audio_file.duration
+    return 0
+
+
 def get_queue_status():
     """Get current unified queue from Liquidsoap with metadata.
 
@@ -105,12 +124,14 @@ def get_queue_status():
                 # Some Liquidsoap versions return URIs directly
                 elif token.startswith('/'):
                     filename = token.split('/')[-1]
+                    duration = get_duration_from_database(filename)
                     items.append({
                         'rid': None,
                         'title': filename,
                         'artist': '',
                         'filename': filename,
                         'path': token,
+                        'duration': duration,
                         'queue_type': queue_type
                     })
 
@@ -133,7 +154,7 @@ def get_request_metadata(rid):
     """Get metadata for a specific request ID"""
     response = send_liquidsoap_command(f'request.metadata {rid}')
     if response and 'ERROR' not in response:
-        metadata = {'rid': rid, 'title': '', 'artist': '', 'filename': ''}
+        metadata = {'rid': rid, 'title': '', 'artist': '', 'filename': '', 'duration': 0}
         for line in response.strip().split('\n'):
             if '=' in line:
                 key, value = line.split('=', 1)
@@ -145,9 +166,17 @@ def get_request_metadata(rid):
                     metadata['artist'] = value
                 elif key == 'filename':
                     metadata['filename'] = value
+                elif key == 'duration':
+                    try:
+                        metadata['duration'] = float(value)
+                    except (ValueError, TypeError):
+                        pass
         # If no title, use filename
         if not metadata['title'] and metadata['filename']:
             metadata['title'] = metadata['filename'].split('/')[-1]
+        # If no duration from Liquidsoap, try to get it from database
+        if not metadata['duration'] and metadata['filename']:
+            metadata['duration'] = get_duration_from_database(metadata['filename'])
         return metadata
     return None
 

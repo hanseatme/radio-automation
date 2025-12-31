@@ -3,7 +3,7 @@
     <admin>admin@localhost</admin>
 
     <limits>
-        <clients>100</clients>
+        <clients>500</clients>
         <sources>2</sources>
         <queue-size>524288</queue-size>
         <client-timeout>30</client-timeout>

@@ -27,7 +27,14 @@
       "Bash(for i in {1..3})",
       "Bash(do curl -s http://localhost:8080/api/nowplaying.json)",
       "Bash(done)",
-      "Bash(MSYS_NO_PATHCONV=1 docker run:*)"
+      "Bash(MSYS_NO_PATHCONV=1 docker run:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker build:*)",
+      "Bash(docker cp:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(cd:*)",
+      "Bash(python3:*)"
     ]
   }
 }

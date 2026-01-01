@@ -2,662 +2,915 @@
 
 {% block title %}Einstellungen - Radio Automation{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Settings Page Styles */
+.settings-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Tab Navigation */
+.settings-tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--bg-secondary);
+    padding: 0.25rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.settings-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.settings-tab:hover {
+    color: var(--text-primary);
+    background: rgba(var(--primary-rgb), 0.1);
+}
+
+.settings-tab.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+}
+
+.settings-tab i {
+    font-size: 1.1rem;
+}
+
+.settings-tab .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+}
+
+/* Tab Content */
+.tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Settings Cards */
+.settings-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+
+.settings-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-card-header:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+.settings-card-header h6 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.settings-card-header .collapse-icon {
+    transition: transform 0.2s;
+}
+
+.settings-card.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.settings-card-body {
+    padding: 1.25rem;
+}
+
+.settings-card.collapsed .settings-card-body {
+    display: none;
+}
+
+/* Form Improvements */
+.form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.form-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Input Groups */
+.setting-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.setting-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Quick Info Cards */
+.quick-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.quick-info-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.quick-info-card .icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.quick-info-card .icon.primary {
+    background: rgba(var(--primary-rgb), 0.15);
+    color: var(--primary);
+}
+
+.quick-info-card .icon.success {
+    background: rgba(var(--success-rgb), 0.15);
+    color: var(--success);
+}
+
+.quick-info-card .icon.warning {
+    background: rgba(var(--warning-rgb), 0.15);
+    color: var(--warning);
+}
+
+.quick-info-card .info h6 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.quick-info-card .info .value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Copyable Fields */
+.copyable-field {
+    position: relative;
+}
+
+.copyable-field input {
+    padding-right: 3rem;
+}
+
+.copyable-field .copy-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.copyable-field .copy-btn:hover {
+    color: var(--primary);
+    background: rgba(var(--primary-rgb), 0.1);
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.status-indicator.success {
+    background: rgba(var(--success-rgb), 0.1);
+    color: var(--success);
+}
+
+.status-indicator.warning {
+    background: rgba(var(--warning-rgb), 0.1);
+    color: var(--warning);
+}
+
+/* Tool List */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.75rem;
+}
+
+.tool-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+}
+
+.tool-item code {
+    background: var(--primary);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Save Button Row */
+.save-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Search/Filter */
+.settings-search {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.settings-search input {
+    padding-left: 2.5rem;
+}
+
+.settings-search i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-tabs {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+    }
+
+    .settings-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .settings-tab span {
+        display: none;
+    }
+
+    .settings-tab i {
+        font-size: 1.25rem;
+    }
+
+    .setting-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-12 mb-4">
-        <h2><i class="bi bi-gear"></i> Einstellungen</h2>
+<div class="settings-container">
+    <!-- Header -->
+    <div class="settings-header">
+        <h2><i class="bi bi-gear-fill"></i> Einstellungen</h2>
+        <span class="badge bg-secondary">v{{ app_version }}</span>
     </div>
-</div>
 
-<div class="row">
-    <!-- Stream Output Settings -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-broadcast"></i> Stream-Ausgabe</h5>
+    <!-- Tab Navigation -->
+    <div class="settings-tabs" role="tablist">
+        <button class="settings-tab active" data-tab="audio" role="tab">
+            <i class="bi bi-soundwave"></i>
+            <span>Audio</span>
+        </button>
+        <button class="settings-tab" data-tab="station" role="tab">
+            <i class="bi bi-broadcast"></i>
+            <span>Sender</span>
+        </button>
+        <button class="settings-tab" data-tab="tts" role="tab">
+            <i class="bi bi-robot"></i>
+            <span>KI / TTS</span>
+        </button>
+        <button class="settings-tab" data-tab="integrations" role="tab">
+            <i class="bi bi-plug"></i>
+            <span>Integrationen</span>
+        </button>
+        <button class="settings-tab" data-tab="system" role="tab">
+            <i class="bi bi-cpu"></i>
+            <span>System</span>
+        </button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TAB: Audio -->
+    <!-- ============================================ -->
+    <div class="tab-pane active" id="tab-audio">
+        <!-- Stream Output -->
+        <div class="settings-card" id="card-stream-output">
+            <div class="settings-card-header" onclick="toggleCard('card-stream-output')">
+                <h6><i class="bi bi-broadcast text-primary"></i> Stream-Ausgabe</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
                 <form id="stream-settings-form">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Ausgabeformat</label>
-                            <select class="form-select" id="output-format">
-                                <option value="mp3" {{ 'selected' if stream_settings.output_format == 'mp3' }}>MP3</option>
-                                <option value="aac" {{ 'selected' if stream_settings.output_format == 'aac' }}>AAC</option>
-                                <option value="ogg" {{ 'selected' if stream_settings.output_format == 'ogg' }}>OGG Vorbis</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Bitrate (kbps)</label>
-                            <select class="form-select" id="output-bitrate">
-                                <option value="96" {{ 'selected' if stream_settings.output_bitrate == 96 }}>96</option>
-                                <option value="128" {{ 'selected' if stream_settings.output_bitrate == 128 }}>128</option>
-                                <option value="192" {{ 'selected' if stream_settings.output_bitrate == 192 }}>192</option>
-                                <option value="256" {{ 'selected' if stream_settings.output_bitrate == 256 }}>256</option>
-                                <option value="320" {{ 'selected' if stream_settings.output_bitrate == 320 }}>320</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Samplerate (Hz)</label>
-                            <select class="form-select" id="output-samplerate">
-                                <option value="22050" {{ 'selected' if stream_settings.output_samplerate == 22050 }}>22050</option>
-                                <option value="44100" {{ 'selected' if stream_settings.output_samplerate == 44100 }}>44100</option>
-                                <option value="48000" {{ 'selected' if stream_settings.output_samplerate == 48000 }}>48000</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Kanäle</label>
-                            <select class="form-select" id="output-channels">
-                                <option value="1" {{ 'selected' if stream_settings.output_channels == 1 }}>Mono</option>
-                                <option value="2" {{ 'selected' if stream_settings.output_channels == 2 }}>Stereo</option>
-                            </select>
-                        </div>
-                    </div>
-                    <hr>
-                    <h6 class="mb-3"><i class="bi bi-sliders"></i> Loudness-Normalisierung</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="normalize-enabled"
-                                       {{ 'checked' if stream_settings.normalize_enabled }}>
-                                <label class="form-check-label" for="normalize-enabled">
-                                    Normalisierung aktiviert
-                                </label>
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-file-music"></i> Ausgabeformat</div>
+                        <div class="setting-row">
+                            <div>
+                                <label class="form-label">Format</label>
+                                <select class="form-select" id="output-format">
+                                    <option value="mp3" {{ 'selected' if stream_settings.output_format == 'mp3' }}>MP3</option>
+                                    <option value="aac" {{ 'selected' if stream_settings.output_format == 'aac' }}>AAC</option>
+                                    <option value="ogg" {{ 'selected' if stream_settings.output_format == 'ogg' }}>OGG Vorbis</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Bitrate</label>
+                                <select class="form-select" id="output-bitrate">
+                                    <option value="96" {{ 'selected' if stream_settings.output_bitrate == 96 }}>96 kbps</option>
+                                    <option value="128" {{ 'selected' if stream_settings.output_bitrate == 128 }}>128 kbps</option>
+                                    <option value="192" {{ 'selected' if stream_settings.output_bitrate == 192 }}>192 kbps</option>
+                                    <option value="256" {{ 'selected' if stream_settings.output_bitrate == 256 }}>256 kbps</option>
+                                    <option value="320" {{ 'selected' if stream_settings.output_bitrate == 320 }}>320 kbps</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Samplerate</label>
+                                <select class="form-select" id="output-samplerate">
+                                    <option value="22050" {{ 'selected' if stream_settings.output_samplerate == 22050 }}>22050 Hz</option>
+                                    <option value="44100" {{ 'selected' if stream_settings.output_samplerate == 44100 }}>44100 Hz</option>
+                                    <option value="48000" {{ 'selected' if stream_settings.output_samplerate == 48000 }}>48000 Hz</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Kanäle</label>
+                                <select class="form-select" id="output-channels">
+                                    <option value="1" {{ 'selected' if stream_settings.output_channels == 1 }}>Mono</option>
+                                    <option value="2" {{ 'selected' if stream_settings.output_channels == 2 }}>Stereo</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Ziel-LUFS</label>
-                            <input type="number" class="form-control" id="target-lufs"
-                                   value="{{ stream_settings.target_lufs }}"
-                                   min="-24" max="-9" step="0.5">
-                            <small class="text-muted">Empfohlen: -16 LUFS (Streaming Standard)</small>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-sliders"></i> Loudness-Normalisierung</div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="normalize-enabled"
+                                           {{ 'checked' if stream_settings.normalize_enabled }}>
+                                    <label class="form-check-label" for="normalize-enabled">
+                                        Normalisierung aktiviert
+                                    </label>
+                                </div>
+                                <small class="text-muted">Gleiche Lautstärke für alle Titel</small>
+                            </div>
+                            <div>
+                                <label class="form-label">Ziel-LUFS</label>
+                                <input type="number" class="form-control" id="target-lufs"
+                                       value="{{ stream_settings.target_lufs }}"
+                                       min="-24" max="-9" step="0.5">
+                                <small class="text-muted">-16 LUFS = Streaming-Standard</small>
+                            </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Speichern
-                    </button>
+
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
 
-        <!-- Crossfade Settings -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-soundwave"></i> Crossfade / Überblendung</h5>
+        <!-- Crossfade -->
+        <div class="settings-card" id="card-crossfade">
+            <div class="settings-card-header" onclick="toggleCard('card-crossfade')">
+                <h6><i class="bi bi-arrows-expand text-info"></i> Crossfade / Überblendung</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Aktuell werden nur die <strong>Musik-Crossfade-Einstellungen</strong> angewendet.
+                </div>
                 <form id="crossfade-settings-form">
-                    <div class="alert alert-info small mb-3">
-                        <i class="bi bi-info-circle me-1"></i>
-                        <strong>Hinweis:</strong> Aktuell werden nur die <strong>Musik-Crossfade-Einstellungen</strong> angewendet, da alle Inhalte (Musik, Jingles, Moderationen) die gleiche Überblendung verwenden. Die Jingle- und Moderations-Einstellungen werden gespeichert, aber derzeit nicht separat verwendet.
-                    </div>
-
-                    <!-- Music Crossfade -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold"><i class="bi bi-music-note-beamed text-primary me-1"></i> Musik</label>
-                        <div class="row">
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-music-fade-in"
-                                       value="{{ stream_settings.crossfade_music_fade_in|default(0.5) }}"
-                                       placeholder="0.5 oder 0,5">
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label"><i class="bi bi-music-note-beamed text-primary me-1"></i> Musik Fade-In</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="crossfade-music-fade-in"
+                                       value="{{ stream_settings.crossfade_music_fade_in|default(0.5) }}">
+                                <span class="input-group-text">Sek.</span>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-music-fade-out"
-                                       value="{{ stream_settings.crossfade_music_fade_out|default(0.5) }}"
-                                       placeholder="0.5 oder 0,5">
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-music-note-beamed text-primary me-1"></i> Musik Fade-Out</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="crossfade-music-fade-out"
+                                       value="{{ stream_settings.crossfade_music_fade_out|default(0.5) }}">
+                                <span class="input-group-text">Sek.</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingle Fade-In</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="crossfade-jingle-fade-in"
+                                       value="{{ stream_settings.crossfade_jingle_fade_in|default(0.0) }}">
+                                <span class="input-group-text">Sek.</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingle Fade-Out</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="crossfade-jingle-fade-out"
+                                       value="{{ stream_settings.crossfade_jingle_fade_out|default(0.0) }}">
+                                <span class="input-group-text">Sek.</span>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Jingle Crossfade -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingles</label>
-                        <div class="row">
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-jingle-fade-in"
-                                       value="{{ stream_settings.crossfade_jingle_fade_in|default(0.0) }}"
-                                       placeholder="0.0 oder 0,0">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-jingle-fade-out"
-                                       value="{{ stream_settings.crossfade_jingle_fade_out|default(0.0) }}"
-                                       placeholder="0.0 oder 0,0">
-                            </div>
-                        </div>
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
                     </div>
-
-                    <!-- Moderation Crossfade -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold"><i class="bi bi-mic-fill text-danger me-1"></i> Moderationen</label>
-                        <div class="row">
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-In (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-moderation-fade-in"
-                                       value="{{ stream_settings.crossfade_moderation_fade_in|default(0.0) }}"
-                                       placeholder="0.0 oder 0,0">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small text-muted">Fade-Out (Sek.)</label>
-                                <input type="text" class="form-control form-control-sm" id="crossfade-moderation-fade-out"
-                                       value="{{ stream_settings.crossfade_moderation_fade_out|default(0.0) }}"
-                                       placeholder="0.0 oder 0,0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Speichern
-                    </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Station Settings -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-building"></i> Sender-Informationen</h5>
+    <!-- ============================================ -->
+    <!-- TAB: Station -->
+    <!-- ============================================ -->
+    <div class="tab-pane" id="tab-station">
+        <!-- Station Info -->
+        <div class="settings-card" id="card-station-info">
+            <div class="settings-card-header" onclick="toggleCard('card-station-info')">
+                <h6><i class="bi bi-building text-primary"></i> Sender-Informationen</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
                 <form id="station-settings-form">
-                    <div class="mb-3">
-                        <label class="form-label">Sendername</label>
-                        <input type="text" class="form-control" id="station-name"
-                               value="{{ stream_settings.station_name }}" required>
-                        <small class="text-muted">Wird in der API und im Stream-Titel angezeigt</small>
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label">Sendername</label>
+                            <input type="text" class="form-control" id="station-name"
+                                   value="{{ stream_settings.station_name }}" required>
+                            <small class="text-muted">Wird in API und Stream angezeigt</small>
+                        </div>
+                        <div>
+                            <label class="form-label">Standard-Sendung</label>
+                            <input type="text" class="form-control" id="default-show-name"
+                                   value="{{ stream_settings.default_show_name }}" required>
+                            <small class="text-muted">Wenn keine Sendung läuft</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Standard-Sendungsname (Automatik)</label>
-                        <input type="text" class="form-control" id="default-show-name"
-                               value="{{ stream_settings.default_show_name }}" required>
-                        <small class="text-muted">Wird angezeigt, wenn keine Sendung läuft</small>
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label">Aktuelle Sendung</label>
+                            <select class="form-select" id="current-show">
+                                <option value="">-- Automatik --</option>
+                                {% for show in shows %}
+                                <option value="{{ show.id }}" {{ 'selected' if stream_settings.current_show_id == show.id }}>
+                                    {{ show.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-clock me-1"></i> Zeitzone</label>
+                            <select class="form-select" id="timezone">
+                                <option value="Europe/Berlin" {{ 'selected' if stream_settings.timezone == 'Europe/Berlin' or not stream_settings.timezone }}>Europe/Berlin</option>
+                                <option value="Europe/Vienna" {{ 'selected' if stream_settings.timezone == 'Europe/Vienna' }}>Europe/Vienna</option>
+                                <option value="Europe/Zurich" {{ 'selected' if stream_settings.timezone == 'Europe/Zurich' }}>Europe/Zurich</option>
+                                <option value="Europe/London" {{ 'selected' if stream_settings.timezone == 'Europe/London' }}>Europe/London</option>
+                                <option value="America/New_York" {{ 'selected' if stream_settings.timezone == 'America/New_York' }}>America/New_York</option>
+                                <option value="America/Los_Angeles" {{ 'selected' if stream_settings.timezone == 'America/Los_Angeles' }}>America/Los_Angeles</option>
+                                <option value="UTC" {{ 'selected' if stream_settings.timezone == 'UTC' }}>UTC</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Aktuelle Sendung</label>
-                        <select class="form-select" id="current-show">
-                            <option value="">-- Automatik --</option>
-                            {% for show in shows %}
-                            <option value="{{ show.id }}" {{ 'selected' if stream_settings.current_show_id == show.id }}>
-                                {{ show.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <small class="text-muted">Manuell eine aktive Sendung setzen</small>
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-clock me-1"></i> Zeitzone</label>
-                        <select class="form-select" id="timezone">
-                            <option value="Europe/Berlin" {{ 'selected' if stream_settings.timezone == 'Europe/Berlin' or not stream_settings.timezone }}>Europe/Berlin (MEZ/MESZ)</option>
-                            <option value="Europe/Vienna" {{ 'selected' if stream_settings.timezone == 'Europe/Vienna' }}>Europe/Vienna (MEZ/MESZ)</option>
-                            <option value="Europe/Zurich" {{ 'selected' if stream_settings.timezone == 'Europe/Zurich' }}>Europe/Zurich (MEZ/MESZ)</option>
-                            <option value="Europe/Amsterdam" {{ 'selected' if stream_settings.timezone == 'Europe/Amsterdam' }}>Europe/Amsterdam (MEZ/MESZ)</option>
-                            <option value="Europe/Paris" {{ 'selected' if stream_settings.timezone == 'Europe/Paris' }}>Europe/Paris (MEZ/MESZ)</option>
-                            <option value="Europe/London" {{ 'selected' if stream_settings.timezone == 'Europe/London' }}>Europe/London (GMT/BST)</option>
-                            <option value="Europe/Madrid" {{ 'selected' if stream_settings.timezone == 'Europe/Madrid' }}>Europe/Madrid (MEZ/MESZ)</option>
-                            <option value="Europe/Rome" {{ 'selected' if stream_settings.timezone == 'Europe/Rome' }}>Europe/Rome (MEZ/MESZ)</option>
-                            <option value="Europe/Warsaw" {{ 'selected' if stream_settings.timezone == 'Europe/Warsaw' }}>Europe/Warsaw (MEZ/MESZ)</option>
-                            <option value="Europe/Prague" {{ 'selected' if stream_settings.timezone == 'Europe/Prague' }}>Europe/Prague (MEZ/MESZ)</option>
-                            <option value="Europe/Moscow" {{ 'selected' if stream_settings.timezone == 'Europe/Moscow' }}>Europe/Moscow (MSK)</option>
-                            <option value="America/New_York" {{ 'selected' if stream_settings.timezone == 'America/New_York' }}>America/New_York (EST/EDT)</option>
-                            <option value="America/Chicago" {{ 'selected' if stream_settings.timezone == 'America/Chicago' }}>America/Chicago (CST/CDT)</option>
-                            <option value="America/Los_Angeles" {{ 'selected' if stream_settings.timezone == 'America/Los_Angeles' }}>America/Los_Angeles (PST/PDT)</option>
-                            <option value="Asia/Tokyo" {{ 'selected' if stream_settings.timezone == 'Asia/Tokyo' }}>Asia/Tokyo (JST)</option>
-                            <option value="Asia/Shanghai" {{ 'selected' if stream_settings.timezone == 'Asia/Shanghai' }}>Asia/Shanghai (CST)</option>
-                            <option value="Australia/Sydney" {{ 'selected' if stream_settings.timezone == 'Australia/Sydney' }}>Australia/Sydney (AEST/AEDT)</option>
-                            <option value="UTC" {{ 'selected' if stream_settings.timezone == 'UTC' }}>UTC</option>
-                        </select>
-                        <small class="text-muted">Zeitzone für Zeitpläne und Rotationsregeln</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Speichern
-                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- Now Playing Custom Texts -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-display"></i> Now Playing Anzeige</h5>
+        <!-- Now Playing Texts -->
+        <div class="settings-card" id="card-nowplaying">
+            <div class="settings-card-header" onclick="toggleCard('card-nowplaying')">
+                <h6><i class="bi bi-display text-success"></i> Now Playing Anzeige</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
+                <p class="text-muted small mb-3">Diese Texte ersetzen Dateinamen bei Jingles, Promos etc.</p>
                 <form id="nowplaying-text-form">
-                    <div class="alert alert-info small mb-3">
-                        <i class="bi bi-info-circle me-1"></i>
-                        <strong>Hinweis:</strong> Diese Texte werden anstelle der Dateinamen angezeigt, wenn Jingles, Promos, Werbung oder Moderationen laufen.
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingles</label>
+                            <input type="text" class="form-control" id="jingle-nowplaying-text"
+                                   value="{{ stream_settings.jingle_nowplaying_text }}" placeholder="Jingle">
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-megaphone-fill text-info me-1"></i> Promos</label>
+                            <input type="text" class="form-control" id="promo-nowplaying-text"
+                                   value="{{ stream_settings.promo_nowplaying_text }}" placeholder="Promo">
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-badge-ad-fill text-success me-1"></i> Werbung</label>
+                            <input type="text" class="form-control" id="ad-nowplaying-text"
+                                   value="{{ stream_settings.ad_nowplaying_text }}" placeholder="Werbung">
+                        </div>
+                        <div>
+                            <label class="form-label"><i class="bi bi-mic-fill text-danger me-1"></i> Moderationen</label>
+                            <input type="text" class="form-control" id="moderation-nowplaying-text"
+                                   value="{{ stream_settings.moderation_nowplaying_text }}" placeholder="Moderation">
+                        </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-lightning-fill text-warning me-1"></i> Jingles</label>
-                        <input type="text" class="form-control" id="jingle-nowplaying-text"
-                               value="{{ stream_settings.jingle_nowplaying_text }}"
-                               placeholder="Jingle">
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-megaphone-fill text-info me-1"></i> Promos</label>
-                        <input type="text" class="form-control" id="promo-nowplaying-text"
-                               value="{{ stream_settings.promo_nowplaying_text }}"
-                               placeholder="Promo">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-badge-ad-fill text-success me-1"></i> Werbung</label>
-                        <input type="text" class="form-control" id="ad-nowplaying-text"
-                               value="{{ stream_settings.ad_nowplaying_text }}"
-                               placeholder="Werbung">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-mic-fill text-danger me-1"></i> Moderationen</label>
-                        <input type="text" class="form-control" id="moderation-nowplaying-text"
-                               value="{{ stream_settings.moderation_nowplaying_text }}"
-                               placeholder="Moderation">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Speichern
-                    </button>
                 </form>
             </div>
         </div>
+    </div>
 
-        <!-- KI Moderation / TTS Settings -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-robot"></i> KI Moderation (Minimax TTS)</h5>
+    <!-- ============================================ -->
+    <!-- TAB: TTS / KI -->
+    <!-- ============================================ -->
+    <div class="tab-pane" id="tab-tts">
+        <div class="settings-card" id="card-tts">
+            <div class="settings-card-header" onclick="toggleCard('card-tts')">
+                <h6><i class="bi bi-robot text-primary"></i> Minimax TTS (Text-to-Speech)</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
                 <form id="tts-settings-form">
-                    <div class="mb-3">
-                        <label class="form-label">Minimax API Key</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="minimax-api-key"
-                                   value="{% if stream_settings.minimax_api_key %}***{% endif %}"
-                                   placeholder="API Key eingeben">
-                            <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
-                                <i class="bi bi-eye" id="api-key-icon"></i>
-                            </button>
-                        </div>
-                        <div class="form-text">
-                            {% if stream_settings.minimax_api_key %}
-                            <span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>
-                            {% else %}
-                            <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key hinterlegt</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Group ID</label>
-                        <input type="text" class="form-control" id="minimax-group-id"
-                               value="{{ stream_settings.minimax_group_id or '' }}"
-                               placeholder="z.B. 1883179250966602450">
-                        <div class="form-text">Die Group ID aus Ihrem Minimax-Konto</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Modell</label>
-                            <input type="text" class="form-control" id="minimax-model"
-                                   value="{{ stream_settings.minimax_model or 'speech-2.6-turbo' }}"
-                                   placeholder="speech-2.6-turbo">
-                            <small class="text-muted">z.B. speech-2.6-turbo, speech-01-turbo</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Stimme (Voice ID)</label>
-                            <input type="text" class="form-control" id="minimax-voice-id"
-                                   value="{{ stream_settings.minimax_voice_id or 'German_PlayfulMan' }}"
-                                   placeholder="German_PlayfulMan">
-                            <small class="text-muted">z.B. Casual_Guy, German_PlayfulMan</small>
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-key"></i> API-Zugangsdaten</div>
+                        <div class="setting-row">
+                            <div>
+                                <label class="form-label">API Key</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="minimax-api-key"
+                                           value="{% if stream_settings.minimax_api_key %}***{% endif %}"
+                                           placeholder="API Key eingeben">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
+                                        <i class="bi bi-eye" id="api-key-icon"></i>
+                                    </button>
+                                </div>
+                                {% if stream_settings.minimax_api_key %}
+                                <span class="status-indicator success mt-1"><i class="bi bi-check-circle"></i> Konfiguriert</span>
+                                {% else %}
+                                <span class="status-indicator warning mt-1"><i class="bi bi-exclamation-triangle"></i> Nicht konfiguriert</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label class="form-label">Group ID</label>
+                                <input type="text" class="form-control" id="minimax-group-id"
+                                       value="{{ stream_settings.minimax_group_id or '' }}"
+                                       placeholder="z.B. 1883179250966602450">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Emotion</label>
-                            <input type="text" class="form-control" id="minimax-emotion"
-                                   value="{{ stream_settings.minimax_emotion or 'happy' }}"
-                                   placeholder="happy">
-                            <small class="text-muted">z.B. happy, sad, angry, fearful, surprised, neutral</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Language Boost</label>
-                            <input type="text" class="form-control" id="minimax-language-boost"
-                                   value="{{ stream_settings.minimax_language_boost or 'German' }}"
-                                   placeholder="German">
-                            <small class="text-muted">z.B. German, English, Chinese, auto</small>
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-gear"></i> Stimm-Einstellungen</div>
+                        <div class="setting-row">
+                            <div>
+                                <label class="form-label">Modell</label>
+                                <input type="text" class="form-control" id="minimax-model"
+                                       value="{{ stream_settings.minimax_model or 'speech-2.6-turbo' }}">
+                                <small class="text-muted">z.B. speech-2.6-turbo</small>
+                            </div>
+                            <div>
+                                <label class="form-label">Stimme (Voice ID)</label>
+                                <input type="text" class="form-control" id="minimax-voice-id"
+                                       value="{{ stream_settings.minimax_voice_id or 'German_PlayfulMan' }}">
+                                <small class="text-muted">z.B. German_PlayfulMan</small>
+                            </div>
+                            <div>
+                                <label class="form-label">Emotion</label>
+                                <input type="text" class="form-control" id="minimax-emotion"
+                                       value="{{ stream_settings.minimax_emotion or 'happy' }}">
+                                <small class="text-muted">happy, sad, neutral...</small>
+                            </div>
+                            <div>
+                                <label class="form-label">Language Boost</label>
+                                <input type="text" class="form-control" id="minimax-language-boost"
+                                       value="{{ stream_settings.minimax_language_boost or 'German' }}">
+                                <small class="text-muted">German, English, auto</small>
+                            </div>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Speichern
-                    </button>
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
+    </div>
 
-        <!-- API Info -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-code-slash"></i> JSON API</h5>
+    <!-- ============================================ -->
+    <!-- TAB: Integrationen -->
+    <!-- ============================================ -->
+    <div class="tab-pane" id="tab-integrations">
+        <!-- JSON API -->
+        <div class="settings-card" id="card-api">
+            <div class="settings-card-header" onclick="toggleCard('card-api')">
+                <h6><i class="bi bi-code-slash text-warning"></i> JSON API</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
-                <table class="table table-borderless mb-0">
-                    <tr>
-                        <td><strong>Now Playing:</strong></td>
-                        <td>
-                            <code id="api-nowplaying-url">/api/nowplaying.json</code>
-                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyApiUrl('nowplaying')">
-                                <i class="bi bi-clipboard"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <pre class="bg-light p-2 rounded small mb-0">{
+            <div class="settings-card-body">
+                <div class="mb-3">
+                    <label class="form-label">Now Playing Endpoint</label>
+                    <div class="copyable-field">
+                        <input type="text" class="form-control bg-light" id="api-nowplaying-url" readonly
+                               value="">
+                        <button class="copy-btn" onclick="copyApiUrl('nowplaying')" title="Kopieren">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <pre class="bg-light p-3 rounded small mb-0"><code>{
   "title": "Aktueller Titel",
   "artist": "Interpret",
   "show": "Sendungsname",
   "station": "{{ stream_settings.station_name }}",
   "duration": 180,
-  "elapsed": 45,
-  "remaining": 135
-}</pre>
-                        </td>
-                    </tr>
-                </table>
+  "elapsed": 45
+}</code></pre>
             </div>
         </div>
 
         <!-- MCP Server -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-robot"></i> MCP Server (KI-Integration)</h5>
+        <div class="settings-card" id="card-mcp">
+            <div class="settings-card-header" onclick="toggleCard('card-mcp')">
+                <h6><i class="bi bi-robot text-info"></i> MCP Server (KI-Integration)</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
+            <div class="settings-card-body">
                 <div class="alert alert-info small mb-3">
                     <i class="bi bi-info-circle me-1"></i>
-                    <strong>Model Context Protocol:</strong> Ermöglicht KI-Assistenten (wie Claude) die Steuerung des Radiosenders per API.
+                    <strong>Model Context Protocol:</strong> Ermöglicht KI-Assistenten die Steuerung des Senders.
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label"><strong>MCP Server URL</strong></label>
-                    <div class="input-group">
-                        <input type="text" class="form-control bg-light" id="mcp-server-url" readonly
-                               value="">
-                        <button class="btn btn-outline-secondary" type="button" onclick="copyMcpUrl()">
-                            <i class="bi bi-clipboard"></i>
+                <div class="form-section">
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label">MCP Server URL</label>
+                            <div class="copyable-field">
+                                <input type="text" class="form-control bg-light" id="mcp-server-url" readonly value="">
+                                <button class="copy-btn" onclick="copyMcpUrl()" title="Kopieren">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">API Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control bg-light" id="mcp-api-key" readonly
+                                       value="{% if stream_settings.mcp_api_key_set %}{{ stream_settings.mcp_api_key or '********' }}{% else %}Nicht generiert{% endif %}">
+                                <button class="btn btn-outline-secondary" type="button" onclick="toggleMcpKeyVisibility()"
+                                        {% if not stream_settings.mcp_api_key_set %}disabled{% endif %}>
+                                    <i class="bi bi-eye" id="mcp-key-icon"></i>
+                                </button>
+                            </div>
+                            {% if stream_settings.mcp_api_key_set %}
+                            <span class="status-indicator success mt-1"><i class="bi bi-check-circle"></i> Aktiv</span>
+                            {% else %}
+                            <span class="status-indicator warning mt-1"><i class="bi bi-exclamation-triangle"></i> Nicht generiert</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-primary btn-sm" onclick="generateMcpKey()">
+                            <i class="bi bi-key"></i> Key generieren
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="revokeMcpKey()"
+                                {% if not stream_settings.mcp_api_key_set %}disabled{% endif %} id="revoke-mcp-key-btn">
+                            <i class="bi bi-trash"></i> Widerrufen
                         </button>
                     </div>
-                    <small class="text-muted">Diese URL in der MCP-Konfiguration des KI-Assistenten eintragen</small>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label"><strong>API Key</strong></label>
-                    <div class="input-group">
-                        <input type="password" class="form-control bg-light" id="mcp-api-key" readonly
-                               value="{% if stream_settings.mcp_api_key_set %}{{ stream_settings.mcp_api_key or '****************************************' }}{% else %}Kein API Key generiert{% endif %}">
-                        <button class="btn btn-outline-secondary" type="button" onclick="toggleMcpKeyVisibility()" {% if not stream_settings.mcp_api_key_set %}disabled{% endif %}>
-                            <i class="bi bi-eye" id="mcp-key-icon"></i>
-                        </button>
+                <div class="form-section">
+                    <div class="form-section-title"><i class="bi bi-tools"></i> Verfügbare Tools</div>
+                    <div class="tool-grid">
+                        <div class="tool-item"><code>list_files</code> <span>Dateien auflisten</span></div>
+                        <div class="tool-item"><code>search_song</code> <span>Songs suchen</span></div>
+                        <div class="tool-item"><code>add_to_queue</code> <span>Zur Queue hinzufügen</span></div>
+                        <div class="tool-item"><code>get_queue</code> <span>Queue abrufen</span></div>
+                        <div class="tool-item"><code>generate_moderation</code> <span>TTS erstellen</span></div>
+                        <div class="tool-item"><code>skip_track</code> <span>Titel überspringen</span></div>
+                        <div class="tool-item"><code>get_now_playing</code> <span>Aktueller Titel</span></div>
+                        <div class="tool-item"><code>list_rotation_rules</code> <span>Regeln anzeigen</span></div>
+                        <div class="tool-item"><code>toggle_rotation_rule</code> <span>Regel umschalten</span></div>
+                        <div class="tool-item"><code>get_current_time</code> <span>Zeit abrufen</span></div>
+                        <div class="tool-item"><code>clear_queue</code> <span>Queue leeren</span></div>
+                        <div class="tool-item"><code>get_listener_stats</code> <span>Hörerstatistik</span></div>
                     </div>
-                    <div class="form-text">
-                        {% if stream_settings.mcp_api_key_set %}
-                        <span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>
-                        {% else %}
-                        <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key generiert</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="d-flex gap-2 mb-4">
-                    <button class="btn btn-primary" onclick="generateMcpKey()">
-                        <i class="bi bi-key"></i> Neuen Key generieren
-                    </button>
-                    <button class="btn btn-outline-danger" onclick="revokeMcpKey()" {% if not stream_settings.mcp_api_key_set %}disabled{% endif %} id="revoke-mcp-key-btn">
-                        <i class="bi bi-trash"></i> Key widerrufen
-                    </button>
-                </div>
-
-                <hr>
-                <h6 class="mb-3"><i class="bi bi-tools me-1"></i> Verfügbare MCP Tools</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm small">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tool</th>
-                                <th>Beschreibung</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code>list_files</code></td>
-                                <td>Audiodateien einer Kategorie auflisten</td>
-                            </tr>
-                            <tr>
-                                <td><code>search_song</code></td>
-                                <td>Songs nach Titel/Interpret suchen</td>
-                            </tr>
-                            <tr>
-                                <td><code>add_to_queue</code></td>
-                                <td>Datei zur Playlist hinzufügen</td>
-                            </tr>
-                            <tr>
-                                <td><code>get_queue</code></td>
-                                <td>Aktuelle Playlist abrufen</td>
-                            </tr>
-                            <tr>
-                                <td><code>upload_file</code></td>
-                                <td>Audiodatei hochladen</td>
-                            </tr>
-                            <tr>
-                                <td><code>generate_moderation</code></td>
-                                <td>KI-Moderation per TTS erstellen</td>
-                            </tr>
-                            <tr>
-                                <td><code>queue_moderation</code></td>
-                                <td>Moderation in Prioritätswarteschlange</td>
-                            </tr>
-                            <tr>
-                                <td><code>get_upcoming_shows</code></td>
-                                <td>Nächste geplante Sendungen</td>
-                            </tr>
-                            <tr>
-                                <td><code>get_current_time</code></td>
-                                <td>Aktuelle Zeit in Sender-Zeitzone</td>
-                            </tr>
-                            <tr>
-                                <td><code>list_rotation_rules</code></td>
-                                <td>Rotationsregeln auflisten</td>
-                            </tr>
-                            <tr>
-                                <td><code>toggle_rotation_rule</code></td>
-                                <td>Rotationsregel aktivieren/deaktivieren</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <!-- Password Change -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-key"></i> Passwort ändern</h5>
+    <!-- ============================================ -->
+    <!-- TAB: System -->
+    <!-- ============================================ -->
+    <div class="tab-pane" id="tab-system">
+        <!-- Quick Info -->
+        <div class="quick-info">
+            <div class="quick-info-card">
+                <div class="icon primary"><i class="bi bi-person"></i></div>
+                <div class="info">
+                    <h6>Benutzer</h6>
+                    <div class="value">{{ current_user.username }}</div>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="quick-info-card">
+                <div class="icon success"><i class="bi bi-shield-check"></i></div>
+                <div class="info">
+                    <h6>Rolle</h6>
+                    <div class="value">{% if current_user.is_admin %}Administrator{% else %}Benutzer{% endif %}</div>
+                </div>
+            </div>
+            <div class="quick-info-card">
+                <div class="icon warning"><i class="bi bi-broadcast"></i></div>
+                <div class="info">
+                    <h6>Stream-Format</h6>
+                    <div class="value" id="current-format-display">{{ stream_settings.output_format|upper }} {{ stream_settings.output_bitrate }}kbps</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="settings-card" id="card-password">
+            <div class="settings-card-header" onclick="toggleCard('card-password')">
+                <h6><i class="bi bi-key text-danger"></i> Passwort ändern</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
+            </div>
+            <div class="settings-card-body">
                 <form id="password-form">
-                    <div class="mb-3">
-                        <label class="form-label">Aktuelles Passwort</label>
-                        <input type="password" class="form-control" id="current-password" required>
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label">Aktuelles Passwort</label>
+                            <input type="password" class="form-control" id="current-password" required>
+                        </div>
+                        <div>
+                            <label class="form-label">Neues Passwort</label>
+                            <input type="password" class="form-control" id="new-password" required minlength="4">
+                        </div>
+                        <div>
+                            <label class="form-label">Passwort bestätigen</label>
+                            <input type="password" class="form-control" id="confirm-password" required minlength="4">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Neues Passwort</label>
-                        <input type="password" class="form-control" id="new-password" required minlength="4">
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-check-lg"></i> Passwort ändern
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Neues Passwort bestätigen</label>
-                        <input type="password" class="form-control" id="confirm-password" required minlength="4">
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg"></i> Passwort ändern
-                    </button>
                 </form>
             </div>
         </div>
-    </div>
 
-    <!-- Stream Info -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-broadcast-pin"></i> Stream-URLs</h5>
+        <!-- Stream URLs -->
+        <div class="settings-card" id="card-urls">
+            <div class="settings-card-header" onclick="toggleCard('card-urls')">
+                <h6><i class="bi bi-link-45deg text-primary"></i> Stream-URLs</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
-                <table class="table table-borderless mb-0">
-                    <tr>
-                        <td><strong>Stream URL:</strong></td>
-                        <td>
-                            <code>http://[SERVER-IP]:8000/stream</code>
-                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyStreamUrl()">
+            <div class="settings-card-body">
+                <div class="setting-row">
+                    <div>
+                        <label class="form-label">Stream URL</label>
+                        <div class="copyable-field">
+                            <input type="text" class="form-control bg-light" id="stream-url" readonly value="">
+                            <button class="copy-btn" onclick="copyStreamUrl()" title="Kopieren">
                                 <i class="bi bi-clipboard"></i>
                             </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><strong>Format:</strong></td>
-                        <td id="current-format-display">
-                            {{ stream_settings.output_format|upper }} {{ stream_settings.output_bitrate }}kbps
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><strong>Admin-Interface:</strong></td>
-                        <td><code>http://[SERVER-IP]:8080</code></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Icecast Status:</strong></td>
-                        <td><code>http://[SERVER-IP]:8000</code></td>
-                    </tr>
-                </table>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Admin-Interface</label>
+                        <div class="copyable-field">
+                            <input type="text" class="form-control bg-light" id="admin-url" readonly value="">
+                            <button class="copy-btn" onclick="copyAdminUrl()" title="Kopieren">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- System Info -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> System</h5>
+        <div class="settings-card collapsed" id="card-sysinfo">
+            <div class="settings-card-header" onclick="toggleCard('card-sysinfo')">
+                <h6><i class="bi bi-info-circle text-secondary"></i> System-Info</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
             </div>
-            <div class="card-body">
-                <table class="table table-borderless mb-0">
-                    <tr>
-                        <td><strong>Benutzer:</strong></td>
-                        <td>{{ current_user.username }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Rolle:</strong></td>
-                        <td>
-                            {% if current_user.is_admin %}
-                            <span class="badge bg-danger">Administrator</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Benutzer</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><strong>Version:</strong></td>
-                        <td>{{ app_version }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Unterstützte Formate:</strong></td>
-                        <td><small>MP3, WAV, FLAC, OGG, M4A, AAC, WMA, OPUS</small></td>
-                    </tr>
+            <div class="settings-card-body">
+                <table class="table table-sm mb-0">
+                    <tr><td><strong>Version:</strong></td><td>{{ app_version }}</td></tr>
+                    <tr><td><strong>Formate:</strong></td><td>MP3, WAV, FLAC, OGG, M4A, AAC, WMA, OPUS</td></tr>
+                    <tr><td><strong>Icecast:</strong></td><td><code id="icecast-url"></code></td></tr>
                 </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Help Section -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="bi bi-question-circle"></i> Hilfe</h5>
-            </div>
-            <div class="card-body">
-                <div class="accordion" id="helpAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help1">
-                                Wie füge ich Musik hinzu?
-                            </button>
-                        </h2>
-                        <div id="help1" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                Legen Sie Audio-Dateien (MP3, WAV, FLAC, OGG, M4A, AAC, WMA, OPUS) in die entsprechenden Ordner im Media-Verzeichnis:
-                                <ul>
-                                    <li><code>/media/music/</code> - Musiktitel</li>
-                                    <li><code>/media/jingles/</code> - Jingles</li>
-                                    <li><code>/media/promos/</code> - Promos</li>
-                                    <li><code>/media/ads/</code> - Werbung</li>
-                                    <li><code>/media/random-moderation/</code> - Zufällige Moderationen</li>
-                                    <li><code>/media/planned-moderation/</code> - Geplante Moderationen</li>
-                                </ul>
-                                Alternativ können Sie Dateien über die Dateiverwaltung hochladen. Alle Formate werden automatisch in das konfigurierte Ausgabeformat konvertiert und normalisiert.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help2">
-                                Was ist Loudness-Normalisierung?
-                            </button>
-                        </h2>
-                        <div id="help2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                Die Loudness-Normalisierung sorgt dafür, dass alle Audio-Dateien mit gleicher Lautstärke wiedergegeben werden:
-                                <ul>
-                                    <li><strong>-16 LUFS:</strong> Standard für Streaming-Dienste (Spotify, YouTube)</li>
-                                    <li><strong>-14 LUFS:</strong> Etwas lauter, für dynamischere Inhalte</li>
-                                    <li><strong>-18 bis -20 LUFS:</strong> Leiser, für Podcasts oder Sprache</li>
-                                </ul>
-                                Egal ob Ihre Quelldatei 128kbps MP3 oder 24-bit FLAC ist - die Ausgabe wird einheitlich normalisiert.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help3">
-                                Wie nutze ich die JSON API?
-                            </button>
-                        </h2>
-                        <div id="help3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                Die JSON API ermöglicht die Integration mit externen Systemen:
-                                <pre class="bg-light p-2 rounded">GET http://[SERVER-IP]:8080/api/nowplaying.json</pre>
-                                Die API gibt Echtzeit-Informationen über den aktuellen Titel, Interpret, Sendung und Fortschritt zurück. Ideal für:
-                                <ul>
-                                    <li>Webseiten-Widgets ("Jetzt läuft...")</li>
-                                    <li>Smart-Home-Integrationen</li>
-                                    <li>Discord-Bots</li>
-                                    <li>OBS/Streaming-Software</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -666,180 +919,96 @@
 
 {% block extra_js %}
 <script>
-// Helper function to parse German/English decimal numbers
+// ============================================
+// Tab Navigation
+// ============================================
+document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Update active tab
+        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Show corresponding pane
+        const tabId = tab.dataset.tab;
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+
+        // Save to localStorage
+        localStorage.setItem('settings-active-tab', tabId);
+    });
+});
+
+// Restore last active tab
+const savedTab = localStorage.getItem('settings-active-tab');
+if (savedTab) {
+    const tab = document.querySelector(`[data-tab="${savedTab}"]`);
+    if (tab) tab.click();
+}
+
+// ============================================
+// Card Collapse
+// ============================================
+function toggleCard(cardId) {
+    const card = document.getElementById(cardId);
+    card.classList.toggle('collapsed');
+}
+
+// ============================================
+// Helper Functions
+// ============================================
 function parseGermanFloat(value) {
-    // Replace comma with dot for German decimal notation
     return parseFloat(value.toString().replace(',', '.'));
 }
 
-// Stream Settings Form
-document.getElementById('stream-settings-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+function showSuccess(message) {
+    showToast(message, 'success');
+}
 
-    try {
-        const response = await fetch('/settings/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                output_format: document.getElementById('output-format').value,
-                output_bitrate: document.getElementById('output-bitrate').value,
-                output_samplerate: document.getElementById('output-samplerate').value,
-                output_channels: document.getElementById('output-channels').value,
-                normalize_enabled: document.getElementById('normalize-enabled').checked,
-                target_lufs: parseGermanFloat(document.getElementById('target-lufs').value)
-            })
-        });
+function showError(message) {
+    showToast(message, 'danger');
+}
 
-        const data = await response.json();
+// ============================================
+// URL Setup
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
 
-        if (data.success) {
-            showToast('Stream-Einstellungen gespeichert', 'success');
-            document.getElementById('current-format-display').textContent =
-                data.settings.output_format.toUpperCase() + ' ' + data.settings.output_bitrate + 'kbps';
-        } else {
-            showToast(data.error || 'Fehler beim Speichern', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
+    // Set URLs
+    document.getElementById('api-nowplaying-url').value = `${protocol}//${host}:8080/api/nowplaying.json`;
+    document.getElementById('mcp-server-url').value = `${protocol}//${host}:8080/mcp`;
+    document.getElementById('stream-url').value = `${protocol}//${host}:8000/stream`;
+    document.getElementById('admin-url').value = `${protocol}//${host}:8080`;
+    document.getElementById('icecast-url').textContent = `${protocol}//${host}:8000`;
 });
 
-// Crossfade Settings Form
-document.getElementById('crossfade-settings-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    try {
-        const response = await fetch('/settings/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                crossfade_music_fade_in: parseGermanFloat(document.getElementById('crossfade-music-fade-in').value),
-                crossfade_music_fade_out: parseGermanFloat(document.getElementById('crossfade-music-fade-out').value),
-                crossfade_jingle_fade_in: parseGermanFloat(document.getElementById('crossfade-jingle-fade-in').value),
-                crossfade_jingle_fade_out: parseGermanFloat(document.getElementById('crossfade-jingle-fade-out').value),
-                crossfade_moderation_fade_in: parseGermanFloat(document.getElementById('crossfade-moderation-fade-in').value),
-                crossfade_moderation_fade_out: parseGermanFloat(document.getElementById('crossfade-moderation-fade-out').value)
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('Crossfade-Einstellungen gespeichert', 'success');
-        } else {
-            showToast(data.error || 'Fehler beim Speichern', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
-});
-
-// Station Settings Form
-document.getElementById('station-settings-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    try {
-        const response = await fetch('/settings/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                station_name: document.getElementById('station-name').value,
-                default_show_name: document.getElementById('default-show-name').value,
-                current_show_id: document.getElementById('current-show').value || null,
-                timezone: document.getElementById('timezone').value
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('Sender-Einstellungen gespeichert', 'success');
-        } else {
-            showToast(data.error || 'Fehler beim Speichern', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
-});
-
-// Now Playing Custom Text Form
-document.getElementById('nowplaying-text-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    try {
-        const response = await fetch('/settings/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jingle_nowplaying_text: document.getElementById('jingle-nowplaying-text').value,
-                promo_nowplaying_text: document.getElementById('promo-nowplaying-text').value,
-                ad_nowplaying_text: document.getElementById('ad-nowplaying-text').value,
-                moderation_nowplaying_text: document.getElementById('moderation-nowplaying-text').value
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('Now Playing Texte gespeichert', 'success');
-        } else {
-            showToast(data.error || 'Fehler beim Speichern', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
-});
-
-// Password Form
-document.getElementById('password-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const newPassword = document.getElementById('new-password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
-
-    if (newPassword !== confirmPassword) {
-        showToast('Passwörter stimmen nicht überein', 'danger');
-        return;
-    }
-
-    try {
-        const response = await fetch('/settings/password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                current_password: document.getElementById('current-password').value,
-                new_password: newPassword
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('Passwort erfolgreich geändert', 'success');
-            document.getElementById('password-form').reset();
-        } else {
-            showToast(data.error || 'Fehler beim Ändern des Passworts', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
-});
-
-function copyStreamUrl() {
-    const url = window.location.protocol + '//' + window.location.hostname + ':8000/stream';
-    navigator.clipboard.writeText(url).then(() => {
-        showToast('Stream-URL kopiert', 'success');
-    });
+// ============================================
+// Copy Functions
+// ============================================
+function copyToClipboard(text, message) {
+    navigator.clipboard.writeText(text).then(() => showSuccess(message + ' kopiert'));
 }
 
 function copyApiUrl(endpoint) {
-    const url = window.location.protocol + '//' + window.location.hostname + ':8080/api/' + endpoint + '.json';
-    navigator.clipboard.writeText(url).then(() => {
-        showToast('API-URL kopiert', 'success');
-    });
+    copyToClipboard(document.getElementById('api-nowplaying-url').value, 'API-URL');
 }
 
-// Toggle API key visibility
+function copyMcpUrl() {
+    copyToClipboard(document.getElementById('mcp-server-url').value, 'MCP-URL');
+}
+
+function copyStreamUrl() {
+    copyToClipboard(document.getElementById('stream-url').value, 'Stream-URL');
+}
+
+function copyAdminUrl() {
+    copyToClipboard(document.getElementById('admin-url').value, 'Admin-URL');
+}
+
+// ============================================
+// Visibility Toggles
+// ============================================
 function toggleApiKeyVisibility() {
     const input = document.getElementById('minimax-api-key');
     const icon = document.getElementById('api-key-icon');
@@ -850,57 +1019,6 @@ function toggleApiKeyVisibility() {
         input.type = 'password';
         icon.classList.replace('bi-eye-slash', 'bi-eye');
     }
-}
-
-// TTS Settings Form
-document.getElementById('tts-settings-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const apiKey = document.getElementById('minimax-api-key').value;
-
-    try {
-        const response = await fetch('/api/tts/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                minimax_api_key: apiKey,
-                minimax_group_id: document.getElementById('minimax-group-id').value,
-                minimax_model: document.getElementById('minimax-model').value,
-                minimax_voice_id: document.getElementById('minimax-voice-id').value,
-                minimax_emotion: document.getElementById('minimax-emotion').value,
-                minimax_language_boost: document.getElementById('minimax-language-boost').value
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('KI Moderation Einstellungen gespeichert', 'success');
-            // Mask the key after saving
-            if (apiKey && apiKey !== '***') {
-                document.getElementById('minimax-api-key').value = '***';
-                document.getElementById('minimax-api-key').type = 'password';
-            }
-        } else {
-            showToast(data.error || 'Fehler beim Speichern', 'danger');
-        }
-    } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
-    }
-});
-
-// MCP Server Functions
-document.addEventListener('DOMContentLoaded', function() {
-    // Set MCP Server URL (SSE endpoint for Claude Desktop)
-    const mcpUrl = window.location.protocol + '//' + window.location.host + '/mcp';
-    document.getElementById('mcp-server-url').value = mcpUrl;
-});
-
-function copyMcpUrl() {
-    const url = document.getElementById('mcp-server-url').value;
-    navigator.clipboard.writeText(url).then(() => {
-        showToast('MCP Server URL kopiert', 'success');
-    });
 }
 
 function toggleMcpKeyVisibility() {
@@ -915,60 +1033,211 @@ function toggleMcpKeyVisibility() {
     }
 }
 
-async function generateMcpKey() {
-    if (!confirm('Neuen MCP API Key generieren? Der alte Key wird ungültig.')) {
+// ============================================
+// Form Submissions
+// ============================================
+
+// Stream Settings
+document.getElementById('stream-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                output_format: document.getElementById('output-format').value,
+                output_bitrate: document.getElementById('output-bitrate').value,
+                output_samplerate: document.getElementById('output-samplerate').value,
+                output_channels: document.getElementById('output-channels').value,
+                normalize_enabled: document.getElementById('normalize-enabled').checked,
+                target_lufs: parseGermanFloat(document.getElementById('target-lufs').value)
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showSuccess('Stream-Einstellungen gespeichert');
+            document.getElementById('current-format-display').textContent =
+                data.settings.output_format.toUpperCase() + ' ' + data.settings.output_bitrate + 'kbps';
+        } else {
+            showError(data.error || 'Fehler beim Speichern');
+        }
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// Crossfade Settings
+document.getElementById('crossfade-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                crossfade_music_fade_in: parseGermanFloat(document.getElementById('crossfade-music-fade-in').value),
+                crossfade_music_fade_out: parseGermanFloat(document.getElementById('crossfade-music-fade-out').value),
+                crossfade_jingle_fade_in: parseGermanFloat(document.getElementById('crossfade-jingle-fade-in').value),
+                crossfade_jingle_fade_out: parseGermanFloat(document.getElementById('crossfade-jingle-fade-out').value)
+            })
+        });
+        const data = await response.json();
+        data.success ? showSuccess('Crossfade gespeichert') : showError(data.error);
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// Station Settings
+document.getElementById('station-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                station_name: document.getElementById('station-name').value,
+                default_show_name: document.getElementById('default-show-name').value,
+                current_show_id: document.getElementById('current-show').value || null,
+                timezone: document.getElementById('timezone').value
+            })
+        });
+        const data = await response.json();
+        data.success ? showSuccess('Sender-Einstellungen gespeichert') : showError(data.error);
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// Now Playing Texts
+document.getElementById('nowplaying-text-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jingle_nowplaying_text: document.getElementById('jingle-nowplaying-text').value,
+                promo_nowplaying_text: document.getElementById('promo-nowplaying-text').value,
+                ad_nowplaying_text: document.getElementById('ad-nowplaying-text').value,
+                moderation_nowplaying_text: document.getElementById('moderation-nowplaying-text').value
+            })
+        });
+        const data = await response.json();
+        data.success ? showSuccess('Now Playing Texte gespeichert') : showError(data.error);
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// TTS Settings
+document.getElementById('tts-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/api/tts/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                minimax_api_key: document.getElementById('minimax-api-key').value,
+                minimax_group_id: document.getElementById('minimax-group-id').value,
+                minimax_model: document.getElementById('minimax-model').value,
+                minimax_voice_id: document.getElementById('minimax-voice-id').value,
+                minimax_emotion: document.getElementById('minimax-emotion').value,
+                minimax_language_boost: document.getElementById('minimax-language-boost').value
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showSuccess('TTS-Einstellungen gespeichert');
+            const key = document.getElementById('minimax-api-key').value;
+            if (key && key !== '***') {
+                document.getElementById('minimax-api-key').value = '***';
+                document.getElementById('minimax-api-key').type = 'password';
+            }
+        } else {
+            showError(data.error);
+        }
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// Password
+document.getElementById('password-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const newPw = document.getElementById('new-password').value;
+    const confirmPw = document.getElementById('confirm-password').value;
+
+    if (newPw !== confirmPw) {
+        showError('Passwörter stimmen nicht überein');
         return;
     }
+
+    try {
+        const response = await fetch('/settings/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                current_password: document.getElementById('current-password').value,
+                new_password: newPw
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showSuccess('Passwort geändert');
+            document.getElementById('password-form').reset();
+        } else {
+            showError(data.error);
+        }
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// ============================================
+// MCP Key Management
+// ============================================
+async function generateMcpKey() {
+    if (!confirm('Neuen MCP API Key generieren? Der alte Key wird ungültig.')) return;
 
     try {
         const response = await fetch('/settings/mcp/generate-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
-
         const data = await response.json();
-
         if (data.success) {
             document.getElementById('mcp-api-key').value = data.api_key;
             document.getElementById('mcp-api-key').type = 'text';
             document.getElementById('mcp-key-icon').classList.replace('bi-eye', 'bi-eye-slash');
             document.getElementById('revoke-mcp-key-btn').disabled = false;
-            document.querySelector('#mcp-api-key').closest('.mb-3').querySelector('.form-text').innerHTML =
-                '<span class="text-success"><i class="bi bi-check-circle"></i> API Key konfiguriert</span>';
-            showToast('Neuer MCP API Key generiert', 'success');
+            showSuccess('MCP Key generiert');
         } else {
-            showToast(data.error || 'Fehler beim Generieren', 'danger');
+            showError(data.error);
         }
     } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
+        showError('Fehler: ' + error);
     }
 }
 
 async function revokeMcpKey() {
-    if (!confirm('MCP API Key wirklich widerrufen? Alle externen KI-Zugriffe werden deaktiviert.')) {
-        return;
-    }
+    if (!confirm('MCP API Key widerrufen? Alle externen KI-Zugriffe werden deaktiviert.')) return;
 
     try {
         const response = await fetch('/settings/mcp/revoke-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
-
         const data = await response.json();
-
         if (data.success) {
-            document.getElementById('mcp-api-key').value = 'Kein API Key generiert';
+            document.getElementById('mcp-api-key').value = 'Nicht generiert';
             document.getElementById('mcp-api-key').type = 'password';
             document.getElementById('revoke-mcp-key-btn').disabled = true;
-            document.querySelector('#mcp-api-key').closest('.mb-3').querySelector('.form-text').innerHTML =
-                '<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Kein API Key generiert</span>';
-            showToast('MCP API Key widerrufen', 'success');
+            showSuccess('MCP Key widerrufen');
         } else {
-            showToast(data.error || 'Fehler beim Widerrufen', 'danger');
+            showError(data.error);
         }
     } catch (error) {
-        showToast('Fehler: ' + error, 'danger');
+        showError('Fehler: ' + error);
     }
 }
 </script>

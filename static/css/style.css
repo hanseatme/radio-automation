@@ -7,6 +7,7 @@
     --primary-hover: #6D1029;
     --primary-light: rgba(139, 21, 56, 0.1);
     --primary-gradient: linear-gradient(135deg, #8B1538 0%, #A91D45 100%);
+    --primary-rgb: 139, 21, 56;
 
     --accent: #C41E3A;
     --accent-light: rgba(196, 30, 58, 0.15);
@@ -16,6 +17,9 @@
     --bg-tertiary: #F1F3F9;
     --bg-card: #FFFFFF;
     --bg-elevated: #FFFFFF;
+    --bg-contrast: #0D0F14;
+    --glass-bg: rgba(255, 255, 255, 0.12);
+    --glass-bg-strong: rgba(255, 255, 255, 0.22);
 
     --text-primary: #1A1D26;
     --text-secondary: #5A6178;
@@ -42,6 +46,10 @@
     --danger-bg: rgba(239, 68, 68, 0.1);
     --info: #3B82F6;
     --info-bg: rgba(59, 130, 246, 0.1);
+    --success-rgb: 16, 185, 129;
+    --warning-rgb: 245, 158, 11;
+    --danger-rgb: 239, 68, 68;
+    --info-rgb: 59, 130, 246;
 
     /* Category Colors */
     --cat-music: #10B981;
@@ -49,6 +57,7 @@
     --cat-promos: #F59E0B;
     --cat-ads: #EF4444;
     --cat-moderation: #8B5CF6;
+    --cat-music-rgb: 16, 185, 129;
 
     /* Sizing */
     --radius-sm: 6px;
@@ -67,6 +76,7 @@
     --primary-hover: #E02348;
     --primary-light: rgba(196, 30, 58, 0.2);
     --primary-gradient: linear-gradient(135deg, #8B1538 0%, #C41E3A 100%);
+    --primary-rgb: 196, 30, 58;
 
     --accent: #E02348;
     --accent-light: rgba(224, 35, 72, 0.2);
@@ -76,6 +86,9 @@
     --bg-tertiary: #1A1E2A;
     --bg-card: #161A24;
     --bg-elevated: #1E2330;
+    --bg-contrast: #0A0C11;
+    --glass-bg: rgba(0, 0, 0, 0.28);
+    --glass-bg-strong: rgba(0, 0, 0, 0.38);
 
     --text-primary: #F5F7FA;
     --text-secondary: #A0A8BC;
@@ -239,7 +252,7 @@ body {
 }
 
 .card-header {
-    background: var(--bg-card);
+    background: var(--bg-card) !important;
     border-bottom: 1px solid var(--border-light);
     padding: 1rem 1.25rem;
     font-weight: 600;
@@ -262,6 +275,11 @@ body {
 
 .card-body {
     padding: 1.25rem;
+}
+
+.card-footer {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-light);
 }
 
 /* Stats Cards - Dashboard */
@@ -390,6 +408,17 @@ body {
 .table {
     margin-bottom: 0;
     color: var(--text-primary);
+    --bs-table-bg: var(--bg-card);
+    --bs-table-striped-bg: var(--bg-tertiary);
+    --bs-table-active-bg: var(--bg-tertiary);
+    --bs-table-hover-bg: var(--primary-light);
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+}
+
+.table > :not(caption) > * > * {
+    background-color: var(--bs-table-bg);
+    color: var(--bs-table-color);
 }
 
 .table th {
@@ -415,7 +444,18 @@ body {
 }
 
 .table-light {
+    --bs-table-bg: var(--bg-tertiary);
+    --bs-table-striped-bg: var(--bg-secondary);
+    --bs-table-active-bg: var(--bg-secondary);
+    --bs-table-hover-bg: var(--primary-light);
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
     background: var(--bg-tertiary);
+}
+
+.table-light > :not(caption) > * > * {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 /* ===== FORMS ===== */
@@ -496,8 +536,9 @@ body {
 .bg-danger { background-color: var(--danger) !important; }
 .bg-info { background-color: var(--info) !important; }
 .bg-secondary { background-color: var(--text-muted) !important; }
-.bg-dark { background-color: var(--text-primary) !important; }
+.bg-dark { background-color: var(--bg-contrast) !important; }
 .bg-light { background-color: var(--bg-tertiary) !important; color: var(--text-primary) !important; }
+.bg-contrast { background-color: var(--bg-contrast) !important; }
 
 /* Category Colors */
 .category-music { background-color: var(--cat-music) !important; }
@@ -715,7 +756,7 @@ body {
     border-radius: var(--radius-md);
     padding: 0.875rem 1rem;
     margin-bottom: 0.5rem;
-    cursor: pointer;
+    cursor: grab;
     transition: all var(--transition-fast);
 }
 
@@ -728,6 +769,11 @@ body {
 .file-item.dragging {
     opacity: 0.5;
     border-style: dashed;
+}
+
+.file-list {
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 /* ===== SHOW EDITOR ===== */
@@ -765,6 +811,10 @@ body {
     cursor: grab;
     color: var(--text-muted);
     margin-right: 1rem;
+}
+
+.show-item .remove-btn {
+    margin-left: auto;
 }
 
 .show-item .drag-handle:hover {
@@ -1111,6 +1161,14 @@ body {
 
 .bg-dark-custom {
     background: var(--bg-tertiary) !important;
+}
+
+.glass-bg {
+    background: var(--glass-bg) !important;
+}
+
+.glass-bg-strong {
+    background: var(--glass-bg-strong) !important;
 }
 
 /* Smooth Theme Transition */

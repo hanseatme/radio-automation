@@ -81,23 +81,18 @@ def init_scheduler(app):
 
 
 def check_rotation_rules(app):
-    """Check and execute rotation rules
+    """Check and execute time-based rotation rules (interval and at_minute).
 
-    Note: Rotation rules are paused when there are items in the manual queue.
-    This allows manual programming to take precedence without interruption.
+    Note: after_songs rules are handled in increment_song_counter() instead.
+    Time-based rules always trigger regardless of queue status - the content
+    will play after current queue items finish.
     """
     global song_counter
 
     with app.app_context():
         from app.models import RotationRule, SystemState
-        from app.audio_engine import insert_from_category, get_queue_status
+        from app.audio_engine import insert_from_category
         from app.utils import get_random_file_from_category, get_local_now
-
-        # Check if manual queue is active - if so, skip rotation rules
-        queue_items = get_queue_status()
-        if len(queue_items) > 0:
-            # Manual queue has items - rotation pauses until queue is empty
-            return
 
         now = get_local_now()
         current_minute = now.minute
@@ -143,7 +138,9 @@ def check_rotation_rules(app):
                     if last_trigger_str:
                         try:
                             last_trigger = datetime.fromisoformat(last_trigger_str)
-                            if (now - last_trigger).total_seconds() >= rule.interval_value * 60:
+                            # Convert now to naive for comparison (both should be local time)
+                            now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+                            if (now_naive - last_trigger).total_seconds() >= rule.interval_value * 60:
                                 should_trigger = True
                         except ValueError:
                             should_trigger = True
@@ -151,7 +148,9 @@ def check_rotation_rules(app):
                         should_trigger = True
 
                     if should_trigger:
-                        SystemState.set(last_trigger_key, now.isoformat())
+                        # Store as naive local time
+                        now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+                        SystemState.set(last_trigger_key, now_naive.isoformat())
 
             elif rule.rule_type == 'after_songs':
                 # This is now handled directly in increment_song_counter()
@@ -165,19 +164,15 @@ def check_rotation_rules(app):
 
 
 def increment_song_counter():
-    """Increment song counters for 'after_songs' rules and trigger if threshold reached
+    """Increment song counters for 'after_songs' rules and trigger if threshold reached.
 
-    Note: Rotation rules are paused when there are items in the manual queue.
-    The counter still increments, but insertion is skipped until queue is empty.
+    Content is added to the queue when thresholds are reached.
+    The content will play in order after any existing queue items.
     """
     from flask import current_app
     from app.models import RotationRule, SystemState
-    from app.audio_engine import insert_from_category, get_queue_status
+    from app.audio_engine import insert_from_category
     from app.utils import get_local_now
-
-    # Check if manual queue is active
-    queue_items = get_queue_status()
-    queue_active = len(queue_items) > 0
 
     now = get_local_now()
     current_day = now.weekday()
@@ -203,17 +198,10 @@ def increment_song_counter():
         counter = int(SystemState.get(counter_key, '0')) + 1
 
         if counter >= rule.interval_value:
-            # Threshold reached - check if queue is empty before inserting
-            if queue_active:
-                # Queue has items - keep counter at threshold, don't insert
-                # Will try again when next song plays
-                SystemState.set(counter_key, str(rule.interval_value))
-                print(f"[Rotation] Rule '{rule.name}' ready but queue active ({len(queue_items)} items) - waiting")
-            else:
-                # Queue empty - insert content and reset counter
-                print(f"[Rotation] Rule '{rule.name}' triggered: inserting {rule.category} after {counter} songs")
-                insert_from_category(rule.category)
-                SystemState.set(counter_key, '0')
+            # Threshold reached - insert content and reset counter
+            print(f"[Rotation] Rule '{rule.name}' triggered: inserting {rule.category} after {counter} songs")
+            insert_from_category(rule.category)
+            SystemState.set(counter_key, '0')
         else:
             # Just increment counter
             SystemState.set(counter_key, str(counter))

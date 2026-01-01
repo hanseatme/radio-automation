@@ -715,7 +715,7 @@
                     <input type="range" class="ctrl-slider" id="mic-volume" min="0" max="100" value="100" oninput="updateMicVolume(this.value)">
                     <span class="ctrl-value" id="mic-volume-value">100%</span>
                     <div class="form-check form-switch mb-0">
-                        <input class="form-check-input ctrl-toggle" type="checkbox" id="mic-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %} onchange="toggleMicAutoDuck()" title="Auto-Duck">
+                        <input class="form-check-input ctrl-toggle" type="checkbox" id="mic-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %} onchange="toggleMicAutoDuck()" title="Auto-Duck + Musikbett bei Live-Mic">
                     </div>
                 </div>
             </div>
@@ -725,7 +725,7 @@
         <div class="jingles-panel">
             <div class="jingles-title">
                 <i class="bi bi-grid-3x3-gap-fill"></i> Instant Jingles
-                <span class="ms-auto badge bg-light text-dark" style="font-size:0.65rem;">
+                <span class="ms-auto badge bg-light" style="font-size:0.65rem;">
                     <i class="bi bi-keyboard"></i> 1-9
                 </span>
             </div>
@@ -778,9 +778,9 @@
             <div class="mic-options">
                 <div class="mic-option">
                     <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" id="live-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" id="live-auto-duck" {% if settings.mic_auto_start_bed %}checked{% endif %} onchange="toggleLiveAutoDuck()">
                     </div>
-                    <label for="live-auto-duck">Auto-Duck bei Live</label>
+                    <label for="live-auto-duck">Auto-Duck + Musikbett</label>
                 </div>
             </div>
 
@@ -1064,7 +1064,18 @@ function updateBrowserMicUI(active) {
 
 function updateMicStatusText(text) { document.getElementById('mic-status-text').textContent = text; }
 function updateMicVolume(v) { document.getElementById('mic-volume-value').textContent = v + '%'; clearTimeout(window.micVT); window.micVT = setTimeout(() => fetch('/api/moderation/mic/volume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volume: v / 100 }) }), 200); }
-function toggleMicAutoDuck() { fetch('/api/moderation/mic/auto-duck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: document.getElementById('mic-auto-duck').checked }) }); }
+function toggleMicAutoDuck() {
+    const enabled = document.getElementById('mic-auto-duck').checked;
+    // Sync with live-auto-duck checkbox
+    document.getElementById('live-auto-duck').checked = enabled;
+    fetch('/api/moderation/mic/auto-duck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: enabled }) });
+}
+function toggleLiveAutoDuck() {
+    const enabled = document.getElementById('live-auto-duck').checked;
+    // Sync with mic-auto-duck checkbox
+    document.getElementById('mic-auto-duck').checked = enabled;
+    fetch('/api/moderation/mic/auto-duck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: enabled }) });
+}
 function toggleBed() { fetch('/api/moderation/bed/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: document.getElementById('bed-toggle').checked }) }).then(r => r.json()).then(d => { if (d.success) { showToast(d.enabled ? 'Musikbett an' : 'Musikbett aus', 'success'); updateStatus(); } }); }
 function updateBedVolume(v) { document.getElementById('bed-volume-value').textContent = v + '%'; clearTimeout(window.bedVT); window.bedVT = setTimeout(() => fetch('/api/moderation/bed/volume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volume: v / 100 }) }), 200); }
 function updateDuckLevel(v) { document.getElementById('duck-level-value').textContent = v + '%'; clearTimeout(window.duckVT); window.duckVT = setTimeout(() => fetch('/api/moderation/ducking/level', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ level: v / 100 }) }), 200); }

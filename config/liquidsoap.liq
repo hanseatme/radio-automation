@@ -166,13 +166,13 @@ musicbed_playlist = playlist(
 musicbed_safe = mksafe(musicbed_playlist)
 
 # Apply dynamic volume based on ducking state
-# When ducking_active is TRUE, use lower ducking level
-# When ducking_active is FALSE, use normal bed volume
+# When ducking_active is TRUE, bed plays at normal volume (behind voice)
+# When ducking_active is FALSE, bed plays quieter (background music)
 def get_bed_volume() =
     if !ducking_active then
-        !bed_ducking_level  # Ducking is ON -> lower volume
+        !bed_volume         # Ducking is ON -> bed at full volume (voice over bed)
     else
-        !bed_volume         # Ducking is OFF -> normal volume
+        !bed_ducking_level  # Ducking is OFF -> bed quieter
     end
 end
 

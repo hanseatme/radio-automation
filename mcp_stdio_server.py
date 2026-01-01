@@ -17,12 +17,17 @@ Configuration via environment variables:
 2. GENERATE AND PLAY MODERATION (ONE STEP):
    generate_moderation("Your text here", queue_immediately=true)
    -> DONE! Do NOT call any queue function afterwards!
+   -> File is saved to "planned-moderation" folder by default
 
 3. GENERATE MODERATION FOR LATER:
    generate_moderation("Your text", queue_immediately=false)
-   -> File saved, not queued. Queue manually later if needed.
+   -> File saved to "planned-moderation", not queued. Queue manually later if needed.
 
-4. INSERT RANDOM JINGLE/PROMO:
+4. GENERATE MODERATION FOR RANDOM ROTATION:
+   generate_moderation("Jingle text", target_folder="random-moderation")
+   -> File saved to "random-moderation" for automatic rotation rules
+
+5. INSERT RANDOM JINGLE/PROMO:
    list_files("jingles") -> pick one -> add_to_queue(file_id=...)
 
 === IMPORTANT: AVOID DUPLICATE QUEUEING ===
@@ -260,7 +265,7 @@ def skip_track() -> str:
 
 
 @mcp.tool()
-def generate_moderation(text: str, target_folder: str = "random-moderation", filename: str = None, queue_immediately: bool = False) -> str:
+def generate_moderation(text: str, target_folder: str = "planned-moderation", filename: str = None, queue_immediately: bool = False) -> str:
     """
     Generate AI voice moderation using text-to-speech.
 
@@ -273,9 +278,9 @@ def generate_moderation(text: str, target_folder: str = "random-moderation", fil
 
     Args:
         text: The text to convert to speech (German or English)
-        target_folder: Where to save the file:
-                      - "random-moderation": For random rotation (default)
-                      - "planned-moderation": For scheduled use
+        target_folder: Where to save the file (default: "planned-moderation"):
+                      - "planned-moderation": For manually created/scheduled moderations (DEFAULT)
+                      - "random-moderation": For automatic random rotation by rotation rules
                       - "misc": For other audio files
         filename: Optional custom filename (without .mp3 extension)
         queue_immediately: CRITICAL PARAMETER:
@@ -292,8 +297,11 @@ def generate_moderation(text: str, target_folder: str = "random-moderation", fil
         # Generate and play immediately (ONE step, no further action needed):
         generate_moderation("Willkommen bei Radio XY!", queue_immediately=true)
 
-        # Only save for later:
-        generate_moderation("Jingle text", target_folder="misc", queue_immediately=false)
+        # Only save for later (default folder is planned-moderation):
+        generate_moderation("Ankündigung für morgen", queue_immediately=false)
+
+        # Save for random rotation:
+        generate_moderation("Zufälliger Jingle", target_folder="random-moderation")
     """
     data = {
         "text": text,

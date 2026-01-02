@@ -1,5 +1,7 @@
 from datetime import datetime
+from functools import wraps
 from flask import Blueprint, request, jsonify, current_app, Response
+from flask_login import current_user
 from app import db, socketio
 from app.models import AudioFile, PlayHistory, SystemState, StreamSettings, NowPlaying, InstantJingle, ModerationSettings
 from app.utils import get_local_now
@@ -7,9 +9,85 @@ from app.utils import get_local_now
 api_bp = Blueprint('api', __name__)
 
 
+# ========== API AUTHENTICATION ==========
+
+def api_auth_required(f):
+    """
+    Decorator for API authentication.
+    Allows access if:
+    1. User is logged in via session (browser)
+    2. Valid API key provided via X-API-Key header
+    3. Valid API key provided via Authorization: Bearer header
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check session auth first (logged in user)
+        if current_user.is_authenticated:
+            return f(*args, **kwargs)
+
+        # Check for API key in headers
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            # Also check Authorization: Bearer header
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                api_key = auth_header[7:]
+
+        if api_key:
+            settings = StreamSettings.get_settings()
+            if settings.validate_mcp_api_key(api_key):
+                return f(*args, **kwargs)
+
+        return jsonify({
+            'success': False,
+            'error': 'Authentication required',
+            'message': 'Please provide a valid API key via X-API-Key header or login via the web interface'
+        }), 401
+
+    return decorated_function
+
+
+def internal_only(f):
+    """
+    Decorator for internal-only routes (called by Liquidsoap).
+    Only allows requests from localhost.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Allow localhost requests (from Liquidsoap)
+        remote_addr = request.remote_addr
+        if remote_addr in ('127.0.0.1', '::1', 'localhost'):
+            return f(*args, **kwargs)
+
+        # Also allow if authenticated
+        if current_user.is_authenticated:
+            return f(*args, **kwargs)
+
+        # Check API key
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                api_key = auth_header[7:]
+
+        if api_key:
+            settings = StreamSettings.get_settings()
+            if settings.validate_mcp_api_key(api_key):
+                return f(*args, **kwargs)
+
+        return jsonify({
+            'success': False,
+            'error': 'Access denied',
+            'message': 'This endpoint is for internal use only'
+        }), 403
+
+    return decorated_function
+
+
 @api_bp.route('/now-playing', methods=['POST'])
+@internal_only
 def update_now_playing():
-    """Called by Liquidsoap when a new track starts playing"""
+    """Called by Liquidsoap when a new track starts playing (internal only)"""
     title = request.form.get('title', '')
     artist = request.form.get('artist', '')
     filename = request.form.get('filename', '')
@@ -141,6 +219,7 @@ def get_status():
 
 
 @api_bp.route('/stream-settings', methods=['GET'])
+@api_auth_required
 def get_stream_settings():
     """Get stream output settings"""
     settings = StreamSettings.get_settings()
@@ -148,6 +227,7 @@ def get_stream_settings():
 
 
 @api_bp.route('/stream-settings', methods=['POST'])
+@api_auth_required
 def update_stream_settings():
     """Update stream output settings"""
     data = request.json
@@ -217,6 +297,7 @@ def write_liquidsoap_settings(settings):
 
 
 @api_bp.route('/skip', methods=['POST'])
+@api_auth_required
 def skip_track():
     """Skip current track"""
     from app.audio_engine import skip_current_track
@@ -225,6 +306,7 @@ def skip_track():
 
 
 @api_bp.route('/queue', methods=['POST'])
+@api_auth_required
 def queue_track():
     """Add a track to the unified playback queue.
 
@@ -249,6 +331,7 @@ def queue_track():
 
 
 @api_bp.route('/queue/clear', methods=['POST'])
+@api_auth_required
 def clear_queue():
     """Clear the entire queue"""
     from app.audio_engine import clear_queue as do_clear_queue
@@ -257,6 +340,7 @@ def clear_queue():
 
 
 @api_bp.route('/queue/status', methods=['GET'])
+@api_auth_required
 def get_queue_status():
     """Get current queue status with metadata and timing info"""
     from app.audio_engine import get_queue_status as do_get_queue_status, get_now_playing
@@ -282,6 +366,7 @@ def get_queue_status():
 
 
 @api_bp.route('/queue/remove/<int:index>', methods=['DELETE'])
+@api_auth_required
 def remove_queue_item(index):
     """Remove a specific item from the queue by its position (0-indexed)
 
@@ -335,6 +420,7 @@ def remove_queue_item(index):
 
 
 @api_bp.route('/queue/reorder', methods=['POST'])
+@api_auth_required
 def reorder_queue():
     """Reorder queue items
 
@@ -392,6 +478,7 @@ def reorder_queue():
 
 
 @api_bp.route('/insert/<category>', methods=['POST'])
+@api_auth_required
 def insert_category(category):
     """Insert a random file from a category"""
     from app.audio_engine import insert_from_category
@@ -405,6 +492,7 @@ def insert_category(category):
 
 
 @api_bp.route('/files/<category>')
+@api_auth_required
 def get_files(category):
     """Get all files for a category"""
     valid_categories = current_app.config['CATEGORIES']
@@ -416,6 +504,7 @@ def get_files(category):
 
 
 @api_bp.route('/files/all')
+@api_auth_required
 def get_all_files():
     """Get all files grouped by category"""
     categories = current_app.config['CATEGORIES']
@@ -429,6 +518,7 @@ def get_all_files():
 
 
 @api_bp.route('/files/<int:file_id>')
+@api_auth_required
 def get_file(file_id):
     """Get details for a single file"""
     audio_file = AudioFile.query.get_or_404(file_id)
@@ -436,6 +526,7 @@ def get_file(file_id):
 
 
 @api_bp.route('/history')
+@api_auth_required
 def get_history():
     """Get play history"""
     limit = request.args.get('limit', 50, type=int)
@@ -444,6 +535,7 @@ def get_history():
 
 
 @api_bp.route('/shows')
+@api_auth_required
 def get_shows():
     """Get all shows"""
     from app.models import Show
@@ -452,6 +544,7 @@ def get_shows():
 
 
 @api_bp.route('/shows/<int:show_id>')
+@api_auth_required
 def get_show(show_id):
     """Get a specific show with items"""
     from app.models import Show
@@ -460,6 +553,7 @@ def get_show(show_id):
 
 
 @api_bp.route('/shows/<int:show_id>/play', methods=['POST'])
+@api_auth_required
 def play_show(show_id):
     """Queue all items from a show and set as current show"""
     from app.models import Show
@@ -480,6 +574,7 @@ def play_show(show_id):
 
 
 @api_bp.route('/shows/stop', methods=['POST'])
+@api_auth_required
 def stop_show():
     """Clear current show (back to automation mode)"""
     settings = StreamSettings.get_settings()
@@ -489,6 +584,7 @@ def stop_show():
 
 
 @api_bp.route('/internal/track-change', methods=['POST'])
+@internal_only
 def internal_track_change():
     """Internal endpoint called by Liquidsoap when track changes"""
     title = request.form.get('title', '')
@@ -575,6 +671,7 @@ def internal_track_change():
 
 
 @api_bp.route('/rules')
+@api_auth_required
 def get_rules():
     """Get all rotation rules"""
     from app.models import RotationRule
@@ -583,6 +680,7 @@ def get_rules():
 
 
 @api_bp.route('/schedules')
+@api_auth_required
 def get_schedules():
     """Get all schedules"""
     from app.models import Schedule
@@ -593,6 +691,7 @@ def get_schedules():
 # ========== MODERATION PANEL API ==========
 
 @api_bp.route('/moderation/status')
+@api_auth_required
 def get_moderation_status():
     """Get current moderation panel status from Liquidsoap"""
     from app.audio_engine import get_moderation_status
@@ -605,6 +704,7 @@ def get_moderation_status():
 
 
 @api_bp.route('/moderation/settings', methods=['GET'])
+@api_auth_required
 def get_moderation_settings():
     """Get moderation panel settings"""
     settings = ModerationSettings.get_settings()
@@ -612,6 +712,7 @@ def get_moderation_settings():
 
 
 @api_bp.route('/moderation/settings', methods=['POST'])
+@api_auth_required
 def update_moderation_settings():
     """Update moderation panel settings"""
     data = request.json
@@ -647,6 +748,7 @@ def update_moderation_settings():
 
 
 @api_bp.route('/moderation/bed/toggle', methods=['POST'])
+@api_auth_required
 def toggle_music_bed():
     """Toggle music bed on/off"""
     from app.audio_engine import set_bed_enabled, get_bed_status
@@ -670,6 +772,7 @@ def toggle_music_bed():
 
 
 @api_bp.route('/moderation/bed/volume', methods=['POST'])
+@api_auth_required
 def set_music_bed_volume():
     """Set music bed volume"""
     from app.audio_engine import set_bed_volume
@@ -688,6 +791,7 @@ def set_music_bed_volume():
 
 
 @api_bp.route('/moderation/ducking/toggle', methods=['POST'])
+@api_auth_required
 def toggle_ducking():
     """Toggle ducking on/off"""
     from app.audio_engine import set_ducking_active, get_ducking_status
@@ -704,6 +808,7 @@ def toggle_ducking():
 
 
 @api_bp.route('/moderation/ducking/level', methods=['POST'])
+@api_auth_required
 def set_ducking_level():
     """Set ducking level"""
     from app.audio_engine import set_bed_ducking_level
@@ -722,6 +827,7 @@ def set_ducking_level():
 
 
 @api_bp.route('/moderation/jingles', methods=['GET'])
+@api_auth_required
 def get_instant_jingles():
     """Get all 9 instant jingle slots"""
     InstantJingle.ensure_slots_exist()
@@ -730,6 +836,7 @@ def get_instant_jingles():
 
 
 @api_bp.route('/moderation/jingles/<int:slot>', methods=['GET'])
+@api_auth_required
 def get_instant_jingle(slot):
     """Get a specific jingle slot"""
     if slot < 1 or slot > 9:
@@ -743,6 +850,7 @@ def get_instant_jingle(slot):
 
 
 @api_bp.route('/moderation/jingles/<int:slot>', methods=['POST'])
+@api_auth_required
 def update_instant_jingle(slot):
     """Configure a jingle slot"""
     if slot < 1 or slot > 9:
@@ -764,6 +872,7 @@ def update_instant_jingle(slot):
 
 
 @api_bp.route('/moderation/jingles/<int:slot>/play', methods=['POST'])
+@api_auth_required
 def play_instant_jingle(slot):
     """Play a jingle from a specific slot"""
     from app.audio_engine import play_instant_jingle as do_play_jingle
@@ -780,6 +889,7 @@ def play_instant_jingle(slot):
 
 
 @api_bp.route('/moderation/jingle/volume', methods=['POST'])
+@api_auth_required
 def set_jingle_volume_api():
     """Set instant jingle volume"""
     from app.audio_engine import set_jingle_volume
@@ -798,6 +908,7 @@ def set_jingle_volume_api():
 
 
 @api_bp.route('/moderation/beds', methods=['GET'])
+@api_auth_required
 def get_music_beds():
     """Get all available music bed files"""
     beds = AudioFile.query.filter_by(category='musicbeds', is_active=True).order_by(AudioFile.filename).all()
@@ -805,6 +916,7 @@ def get_music_beds():
 
 
 @api_bp.route('/moderation/bed/current', methods=['GET'])
+@api_auth_required
 def get_current_music_bed():
     """Get the current/first available music bed file for recording"""
     import os
@@ -835,6 +947,7 @@ def get_current_music_bed():
 
 
 @api_bp.route('/moderation/bed/stream/<filename>')
+@api_auth_required
 def stream_music_bed(filename):
     """Stream a music bed file for browser playback"""
     import os
@@ -853,6 +966,7 @@ def stream_music_bed(filename):
 # ========== MICROPHONE API ==========
 
 @api_bp.route('/moderation/mic/toggle', methods=['POST'])
+@api_auth_required
 def toggle_mic():
     """Toggle microphone on/off"""
     from app.audio_engine import set_mic_enabled, get_mic_status
@@ -876,6 +990,7 @@ def toggle_mic():
 
 
 @api_bp.route('/moderation/mic/volume', methods=['POST'])
+@api_auth_required
 def set_mic_volume_api():
     """Set microphone volume"""
     from app.audio_engine import set_mic_volume
@@ -888,6 +1003,7 @@ def set_mic_volume_api():
 
 
 @api_bp.route('/moderation/mic/auto-duck', methods=['POST'])
+@api_auth_required
 def set_mic_auto_duck_api():
     """Set microphone auto-duck setting"""
     from app.audio_engine import set_mic_auto_duck
@@ -906,6 +1022,7 @@ def set_mic_auto_duck_api():
 
 
 @api_bp.route('/moderation/mic/status', methods=['GET'])
+@api_auth_required
 def get_mic_status_api():
     """Get microphone status"""
     from app.audio_engine import get_mic_status
@@ -916,6 +1033,7 @@ def get_mic_status_api():
 # ========== RECORDED MODERATION API ==========
 
 @api_bp.route('/moderation/recording/upload', methods=['POST'])
+@api_auth_required
 def upload_recorded_moderation():
     """Upload a recorded moderation and queue it for playback"""
     import os
@@ -985,6 +1103,7 @@ def upload_recorded_moderation():
 
 
 @api_bp.route('/moderation/recording/queue', methods=['GET', 'POST'])
+@api_auth_required
 def recording_queue():
     """
     GET: Get list of queued recorded moderations
@@ -1032,6 +1151,7 @@ def recording_queue():
 # ==================== LISTENER STATISTICS ====================
 
 @api_bp.route('/listeners/current', methods=['GET'])
+@api_auth_required
 def get_current_listeners():
     """Get current listener count"""
     from app.listener_tracking import get_icecast_listeners
@@ -1040,6 +1160,7 @@ def get_current_listeners():
 
 
 @api_bp.route('/listeners/stats', methods=['GET'])
+@api_auth_required
 def get_listener_stats():
     """
     Get listener statistics for a given time period
@@ -1058,6 +1179,7 @@ def get_listener_stats():
 
 
 @api_bp.route('/listeners/history', methods=['GET'])
+@api_auth_required
 def get_listener_history():
     """
     Get detailed listener history
@@ -1086,6 +1208,7 @@ def get_listener_history():
 # ==================== TTS GENERATOR ====================
 
 @api_bp.route('/tts/generate', methods=['POST'])
+@api_auth_required
 def generate_tts():
     """
     Generate TTS audio with optional processing
@@ -1157,6 +1280,7 @@ def generate_tts():
 
 
 @api_bp.route('/tts/voices', methods=['GET'])
+@api_auth_required
 def get_tts_voices():
     """Get available TTS voices from Minimax API"""
     from app.tts_service import MinimaxTTS
@@ -1173,6 +1297,7 @@ def get_tts_voices():
 
 
 @api_bp.route('/tts/settings', methods=['GET'])
+@api_auth_required
 def get_tts_settings():
     """Get TTS configuration settings"""
     settings = StreamSettings.get_settings()
@@ -1195,6 +1320,7 @@ def get_tts_settings():
 
 
 @api_bp.route('/tts/settings', methods=['POST'])
+@api_auth_required
 def update_tts_settings():
     """Update TTS configuration settings"""
     data = request.json
@@ -1247,6 +1373,7 @@ def update_tts_settings():
 
 
 @api_bp.route('/internal-files', methods=['GET'])
+@api_auth_required
 def get_internal_files():
     """Get list of internal files (intro, outro, musicbed)"""
     import os
@@ -1277,6 +1404,7 @@ def get_internal_files():
 
 
 @api_bp.route('/internal-files/upload', methods=['POST'])
+@api_auth_required
 def upload_internal_file():
     """Upload an internal file (intro, outro, musicbed)"""
     import os
@@ -1315,6 +1443,7 @@ def upload_internal_file():
 
 
 @api_bp.route('/internal-files/<filename>', methods=['DELETE'])
+@api_auth_required
 def delete_internal_file(filename):
     """Delete an internal file"""
     import os
@@ -1348,6 +1477,7 @@ def delete_internal_file(filename):
 
 
 @api_bp.route('/internal-files/stream/<filename>')
+@api_auth_required
 def stream_internal_file(filename):
     """Stream an internal file for preview playback"""
     import os
@@ -1367,6 +1497,7 @@ def stream_internal_file(filename):
 
 
 @api_bp.route('/audio/<category>/<filename>')
+@api_auth_required
 def stream_audio_file(category, filename):
     """Stream an audio file from a category folder for playback"""
     import os

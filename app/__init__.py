@@ -5,7 +5,7 @@ from flask_login import LoginManager
 from flask_socketio import SocketIO
 
 # Version
-VERSION = "2.0.14"
+VERSION = "2.0.15"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

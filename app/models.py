@@ -292,6 +292,9 @@ class StreamSettings(db.Model):
     # MCP API Key for external AI access
     mcp_api_key = db.Column(db.String(64), default='')
 
+    # Icecast server password (for source, relay, and admin)
+    icecast_password = db.Column(db.String(100), default='hackme')
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -364,7 +367,9 @@ class StreamSettings(db.Model):
             'tts_highpass_hz': self.tts_highpass_hz,
             'timezone': self.timezone or 'Europe/Berlin',
             # MCP Settings
-            'mcp_api_key_set': bool(self.mcp_api_key)
+            'mcp_api_key_set': bool(self.mcp_api_key),
+            # Icecast Settings
+            'icecast_password_set': bool(self.icecast_password)
         }
 
 

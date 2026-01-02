@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 9  # Increment this when adding new migrations
+SCHEMA_VERSION = 10  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -299,6 +299,27 @@ def migration_v8_to_v9():
     return True
 
 
+def migration_v9_to_v10():
+    """
+    Migration from v9 to v10:
+    - Add icecast_password field for Icecast source authentication
+    """
+    logger.info("Running migration v9 -> v10: Adding icecast_password field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'icecast_password',
+                                  "VARCHAR(100) DEFAULT 'hackme'"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v9 -> v10 completed successfully")
+    else:
+        logger.info("Migration v9 -> v10: No changes needed (column already exists)")
+
+    return True
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
@@ -310,6 +331,7 @@ MIGRATIONS = {
     7: migration_v6_to_v7,
     8: migration_v7_to_v8,
     9: migration_v8_to_v9,
+    10: migration_v9_to_v10,
 }
 
 

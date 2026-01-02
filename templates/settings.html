@@ -869,6 +869,50 @@
             </div>
         </div>
 
+        <!-- Icecast Server Password -->
+        <div class="settings-card" id="card-icecast">
+            <div class="settings-card-header" onclick="toggleCard('card-icecast')">
+                <h6><i class="bi bi-broadcast text-warning"></i> Icecast Server-Passwort</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
+            </div>
+            <div class="settings-card-body">
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Hinweis:</strong> Nach der Passwortänderung werden Icecast und Liquidsoap neu gestartet.
+                    Der Stream wird kurz unterbrochen (ca. 2-5 Sekunden).
+                </div>
+                <form id="icecast-password-form">
+                    <div class="setting-row">
+                        <div>
+                            <label class="form-label">Aktuelles Passwort</label>
+                            <div class="copyable-field">
+                                <input type="password" class="form-control bg-light" id="icecast-current-password" readonly value="********">
+                                <button type="button" class="copy-btn" onclick="toggleIcecastPasswordVisibility()" title="Anzeigen/Verbergen">
+                                    <i class="bi bi-eye" id="icecast-password-toggle-icon"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Passwort ist konfiguriert</small>
+                        </div>
+                    </div>
+                    <div class="setting-row mt-3">
+                        <div>
+                            <label class="form-label">Neues Passwort</label>
+                            <input type="password" class="form-control" id="icecast-new-password" required minlength="8" placeholder="Mindestens 8 Zeichen">
+                        </div>
+                        <div>
+                            <label class="form-label">Passwort bestätigen</label>
+                            <input type="password" class="form-control" id="icecast-confirm-password" required minlength="8">
+                        </div>
+                    </div>
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-warning" id="icecast-password-btn">
+                            <i class="bi bi-check-lg"></i> Icecast-Passwort ändern
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Stream URLs -->
         <div class="settings-card" id="card-urls">
             <div class="settings-card-header" onclick="toggleCard('card-urls')">
@@ -1192,6 +1236,71 @@ document.getElementById('password-form').addEventListener('submit', async functi
         showError('Fehler: ' + error);
     }
 });
+
+// Icecast Password
+document.getElementById('icecast-password-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const newPw = document.getElementById('icecast-new-password').value;
+    const confirmPw = document.getElementById('icecast-confirm-password').value;
+
+    if (newPw !== confirmPw) {
+        showError('Passwörter stimmen nicht überein');
+        return;
+    }
+
+    if (newPw.length < 8) {
+        showError('Passwort muss mindestens 8 Zeichen lang sein');
+        return;
+    }
+
+    // Confirm before proceeding (services will restart)
+    if (!confirm('Icecast-Passwort ändern?\n\nAchtung: Der Stream wird kurz unterbrochen, da die Dienste neu gestartet werden müssen.')) {
+        return;
+    }
+
+    const btn = document.getElementById('icecast-password-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Bitte warten...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/settings/icecast-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                new_password: newPw,
+                confirm_password: confirmPw
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showSuccess(data.message || 'Icecast-Passwort geändert');
+            document.getElementById('icecast-password-form').reset();
+        } else {
+            showError(data.error);
+        }
+    } catch (error) {
+        showError('Fehler: ' + error);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+// Toggle Icecast password visibility
+function toggleIcecastPasswordVisibility() {
+    const input = document.getElementById('icecast-current-password');
+    const icon = document.getElementById('icecast-password-toggle-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
 
 // ============================================
 // MCP Key Management

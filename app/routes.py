@@ -566,6 +566,34 @@ def revoke_mcp_key():
     return jsonify({'success': True})
 
 
+@main_bp.route('/settings/icecast-password', methods=['POST'])
+@login_required
+def update_icecast_password():
+    """Update the Icecast server password"""
+    from app.config_writer import update_icecast_password as do_update
+
+    data = request.get_json()
+    new_password = data.get('new_password', '').strip()
+    confirm_password = data.get('confirm_password', '').strip()
+
+    # Validate passwords match
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'error': 'Passwörter stimmen nicht überein'}), 400
+
+    # Update password in config files and restart services
+    success, message = do_update(new_password)
+
+    if not success:
+        return jsonify({'success': False, 'error': message}), 400
+
+    # Save to database
+    settings = StreamSettings.get_settings()
+    settings.icecast_password = new_password
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': message})
+
+
 @main_bp.route('/history')
 @login_required
 def history():

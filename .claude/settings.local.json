@@ -49,7 +49,11 @@
       "Bash(git -C \"d:/stream_server\" push)",
       "Bash(cat:*)",
       "Bash(git -C \"d:/stream_server\" add -A)",
-      "Bash(git -C \"d:/stream_server\" commit -m \"$\\(cat <<''EOF''\nVersion 2.0.14 - Live Mic Music Bed Fix & Settings UI Redesign\n\n- Fixed music bed not playing during live mic \\(inverted volume logic in Liquidsoap\\)\n- Fixed Auto-Duck checkbox in Live Mic panel not saving settings\n- Synchronized both Auto-Duck checkboxes \\(Controls & Live Panel\\)\n- Redesigned Settings page with tab-based navigation\n- Improved moderation panel with clearer Auto-Duck + Musikbett label\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git -C \"d:/stream_server\" commit -m \"$\\(cat <<''EOF''\nVersion 2.0.14 - Live Mic Music Bed Fix & Settings UI Redesign\n\n- Fixed music bed not playing during live mic \\(inverted volume logic in Liquidsoap\\)\n- Fixed Auto-Duck checkbox in Live Mic panel not saving settings\n- Synchronized both Auto-Duck checkboxes \\(Controls & Live Panel\\)\n- Redesigned Settings page with tab-based navigation\n- Improved moderation panel with clearer Auto-Duck + Musikbett label\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"d:/stream_server\" commit -m \"$\\(cat <<''EOF''\nVersion 2.0.15 - API Security & Documentation\n\n- Added authentication requirement to all API endpoints\n- Session-based auth for browser users\n- API key authentication via X-API-Key or Authorization: Bearer header\n- Uses existing MCP API key from Settings\n- Internal endpoints \\(Liquidsoap\\) allow localhost access\n- Public endpoints \\(/nowplaying, /status\\) remain open\n- Created comprehensive API.md documentation\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(docker info:*)",
+      "Bash(docker cp \"d:/stream_server/app/migrations.py\" radio-automation://app/app/migrations.py)",
+      "Bash(docker cp \"d:/stream_server/app/api.py\" radio-automation://app/app/api.py)"
     ]
   }
 }

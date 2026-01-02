@@ -16,6 +16,15 @@ import base64
 from flask_socketio import emit
 from app import socketio
 
+def get_icecast_password():
+    """Get the Icecast password from database settings"""
+    try:
+        from app.models import StreamSettings
+        settings = StreamSettings.get_settings()
+        return settings.icecast_password or 'hackme'
+    except Exception:
+        return 'hackme'
+
 # Setup logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('mic_streaming')
@@ -42,7 +51,8 @@ def start_harbor_connection():
         sock.connect(('127.0.0.1', 9998))
 
         # Send HTTP PUT request with chunked transfer encoding for streaming
-        auth = base64.b64encode(b'source:hackme').decode()
+        password = get_icecast_password()
+        auth = base64.b64encode(f'source:{password}'.encode()).decode()
         http_header = (
             "PUT /mic HTTP/1.1\r\n"
             "Host: 127.0.0.1:9998\r\n"
@@ -147,7 +157,8 @@ def audio_streaming_thread():
 
         # Send HTTP PUT request with WAV content type
         # Liquidsoap accepts WAV streams which include format info
-        auth = base64.b64encode(b'source:hackme').decode()
+        password = get_icecast_password()
+        auth = base64.b64encode(f'source:{password}'.encode()).decode()
         http_header = (
             "SOURCE /mic ICE/1.0\r\n"
             f"Authorization: Basic {auth}\r\n"

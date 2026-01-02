@@ -7,7 +7,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from app import db
-from app.models import ListenerStats
+from app.models import ListenerStats, StreamSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,11 @@ def get_icecast_listeners(mountpoint='/stream'):
     try:
         # Icecast stats endpoint (XML format)
         url = 'http://localhost:8000/admin/stats'
-        auth = ('admin', 'hackme')  # Default Icecast admin credentials
+
+        # Get password from database settings
+        settings = StreamSettings.get_settings()
+        password = settings.icecast_password or 'hackme'
+        auth = ('admin', password)
 
         response = requests.get(url, auth=auth, timeout=5)
         response.raise_for_status()

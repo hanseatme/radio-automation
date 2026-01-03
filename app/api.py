@@ -1,10 +1,11 @@
+import os
 from datetime import datetime
 from functools import wraps
-from flask import Blueprint, request, jsonify, current_app, Response
+from flask import Blueprint, request, jsonify, current_app, Response, send_file
 from flask_login import current_user
 from app import db, socketio
 from app.models import AudioFile, PlayHistory, SystemState, StreamSettings, NowPlaying, InstantJingle, ModerationSettings
-from app.utils import get_local_now
+from app.utils import get_local_now, get_preview_path
 
 api_bp = Blueprint('api', __name__)
 
@@ -170,7 +171,17 @@ def update_now_playing():
 def get_nowplaying_json():
     """Public JSON API for current track info - no auth required"""
     np = NowPlaying.get_current()
-    response = jsonify(np.to_dict())
+    settings = StreamSettings.get_settings()
+    data = np.to_dict()
+
+    # Add preview URL if enabled and available for music tracks
+    if settings.preview_enabled and np.audio_file_id and np.category == 'music':
+        preview_path = get_preview_path(np.audio_file_id)
+        if os.path.exists(preview_path):
+            # Build absolute URL for preview
+            data['preview_url'] = f'/api/preview/{np.audio_file_id}'
+
+    response = jsonify(data)
 
     # Add CORS headers to allow external access (e.g., from JavaScript on other websites)
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -200,6 +211,43 @@ def get_nowplaying_text():
 
     text = f"{np.artist} - {np.title}" if np.artist else np.title
     return Response(text, mimetype='text/plain')
+
+
+@api_bp.route('/preview/<int:file_id>')
+def get_preview(file_id):
+    """Public endpoint to stream a 30-second preview of a music file - no auth required"""
+    settings = StreamSettings.get_settings()
+
+    if not settings.preview_enabled:
+        return jsonify({'error': 'Previews are disabled'}), 404
+
+    preview_path = get_preview_path(file_id)
+
+    if not os.path.exists(preview_path):
+        return jsonify({'error': 'Preview not found'}), 404
+
+    response = send_file(
+        preview_path,
+        mimetype='audio/mpeg',
+        as_attachment=False,
+        download_name=f'preview_{file_id}.mp3'
+    )
+
+    # Add CORS headers to allow external access
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+
+    return response
+
+
+@api_bp.route('/preview/<int:file_id>', methods=['OPTIONS'])
+def preview_options(file_id):
+    """Handle CORS preflight requests for preview endpoint"""
+    response = Response()
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 
 @api_bp.route('/status')

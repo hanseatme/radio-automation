@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import User, AudioFile, RotationRule, Show, ShowItem, Schedule, PlayHistory, StreamSettings, InstantJingle, ModerationSettings
-from app.utils import scan_media_files, get_audio_metadata, is_supported_audio_file, SUPPORTED_FORMATS
+from app.utils import scan_media_files, get_audio_metadata, is_supported_audio_file, SUPPORTED_FORMATS, write_audio_metadata, generate_preview, delete_preview, get_preview_path
 
 main_bp = Blueprint('main', __name__)
 
@@ -100,11 +100,16 @@ def files(category=None):
     # Scan for new files
     scan_media_files(category)
 
+    # Get preview enabled setting
+    settings = StreamSettings.get_settings()
+    preview_enabled = settings.preview_enabled
+
     files = AudioFile.query.filter_by(category=category).order_by(AudioFile.filename).all()
     return render_template('files.html',
                            files=files,
                            current_category=category,
-                           categories=categories)
+                           categories=categories,
+                           preview_enabled=preview_enabled)
 
 
 @main_bp.route('/files/toggle/<int:file_id>', methods=['POST'])
@@ -160,6 +165,18 @@ def upload_file(category):
     db.session.add(audio_file)
     db.session.commit()
 
+    # Generate preview for music files if enabled
+    preview_generated = False
+    if category == 'music':
+        settings = StreamSettings.get_settings()
+        if settings.preview_enabled:
+            success, result = generate_preview(audio_file.id, filepath, metadata.get('duration', 0))
+            if success:
+                preview_generated = True
+                print(f'Generated preview for {filename}', flush=True)
+            else:
+                print(f'Failed to generate preview for {filename}: {result}', flush=True)
+
     # Immediately regenerate the playlist to include new file
     from app.utils import generate_playlist_file
     try:
@@ -168,7 +185,9 @@ def upload_file(category):
     except Exception as e:
         print(f'Error regenerating playlist: {e}', flush=True)
 
-    return jsonify({'success': True, 'file': audio_file.to_dict()})
+    response_data = audio_file.to_dict()
+    response_data['preview_generated'] = preview_generated
+    return jsonify({'success': True, 'file': response_data})
 
 
 @main_bp.route('/files/delete/<int:file_id>', methods=['POST'])
@@ -211,6 +230,10 @@ def delete_file(file_id):
                 # Log but don't fail if file removal fails
                 print(f"Warning: Could not delete physical file {file_path}: {e}")
 
+        # Delete preview file if it exists (for music files)
+        if category == 'music':
+            delete_preview(file_id)
+
         # Immediately regenerate the playlist to exclude deleted file
         from app.utils import generate_playlist_file
         try:
@@ -245,6 +268,95 @@ def stream_file(file_id):
         as_attachment=False,
         download_name=audio_file.filename
     )
+
+
+@main_bp.route('/files/update/<int:file_id>', methods=['POST'])
+@login_required
+def update_file_metadata(file_id):
+    """Update title and artist metadata for a file"""
+    from app.utils import generate_playlist_file
+
+    audio_file = AudioFile.query.get_or_404(file_id)
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Keine Daten übermittelt'}), 400
+
+    new_title = data.get('title', '').strip() or None
+    new_artist = data.get('artist', '').strip() or None
+    write_to_file = data.get('write_to_file', True)
+
+    # Check what actually changed
+    title_changed = new_title != audio_file.title
+    artist_changed = new_artist != audio_file.artist
+
+    if not title_changed and not artist_changed:
+        return jsonify({'success': True, 'message': 'Keine Änderungen'})
+
+    # Update database
+    if title_changed:
+        audio_file.title = new_title
+    if artist_changed:
+        audio_file.artist = new_artist
+
+    db.session.commit()
+
+    # Write to file tags if requested and file exists
+    tag_message = ""
+    if write_to_file and os.path.exists(audio_file.path):
+        # Only write values that changed
+        write_title = new_title if title_changed else None
+        write_artist = new_artist if artist_changed else None
+
+        success, tag_message = write_audio_metadata(
+            audio_file.path,
+            title=write_title,
+            artist=write_artist
+        )
+        if not success:
+            tag_message = f" (Warnung: {tag_message})"
+        else:
+            tag_message = f" - {tag_message}"
+
+    # Regenerate playlist to reflect new metadata
+    try:
+        generate_playlist_file(audio_file.category)
+    except Exception as e:
+        print(f'Error regenerating playlist: {e}', flush=True)
+
+    return jsonify({
+        'success': True,
+        'message': f'Metadaten aktualisiert{tag_message}',
+        'file': audio_file.to_dict()
+    })
+
+
+@main_bp.route('/files/regenerate-preview/<int:file_id>', methods=['POST'])
+@login_required
+def regenerate_preview(file_id):
+    """Regenerate the preview file for a music track"""
+    audio_file = AudioFile.query.get_or_404(file_id)
+
+    if audio_file.category != 'music':
+        return jsonify({'success': False, 'error': 'Nur für Musik-Dateien verfügbar'}), 400
+
+    settings = StreamSettings.get_settings()
+    if not settings.preview_enabled:
+        return jsonify({'success': False, 'error': 'Hörproben sind deaktiviert'}), 400
+
+    if not os.path.exists(audio_file.path):
+        return jsonify({'success': False, 'error': 'Quelldatei nicht gefunden'}), 404
+
+    success, result = generate_preview(audio_file.id, audio_file.path, audio_file.duration)
+
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Hörprobe wurde generiert',
+            'preview_url': f'/api/preview/{audio_file.id}'
+        })
+    else:
+        return jsonify({'success': False, 'error': result}), 500
 
 
 @main_bp.route('/rotation')
@@ -481,6 +593,10 @@ def save_stream_settings():
         settings.crossfade_moderation_fade_in = float(data['crossfade_moderation_fade_in'])
     if 'crossfade_moderation_fade_out' in data:
         settings.crossfade_moderation_fade_out = float(data['crossfade_moderation_fade_out'])
+
+    # Preview settings
+    if 'preview_enabled' in data:
+        settings.preview_enabled = bool(data['preview_enabled'])
 
     db.session.commit()
 

@@ -53,7 +53,9 @@
       "Bash(git -C \"d:/stream_server\" commit -m \"$\\(cat <<''EOF''\nVersion 2.0.15 - API Security & Documentation\n\n- Added authentication requirement to all API endpoints\n- Session-based auth for browser users\n- API key authentication via X-API-Key or Authorization: Bearer header\n- Uses existing MCP API key from Settings\n- Internal endpoints \\(Liquidsoap\\) allow localhost access\n- Public endpoints \\(/nowplaying, /status\\) remain open\n- Created comprehensive API.md documentation\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(docker info:*)",
       "Bash(docker cp \"d:/stream_server/app/migrations.py\" radio-automation://app/app/migrations.py)",
-      "Bash(docker cp \"d:/stream_server/app/api.py\" radio-automation://app/app/api.py)"
+      "Bash(docker cp \"d:/stream_server/app/api.py\" radio-automation://app/app/api.py)",
+      "Bash(git -C \"d:/stream_server\" commit -m \"$\\(cat <<''EOF''\nVersion 2.0.16 - Icecast Password Management\n\n- Added config_writer.py for Icecast/Liquidsoap password management\n- Fixed regex pattern for multi-line Liquidsoap output.icecast blocks\n- Added database migration v9_to_v10 for icecast_password column\n- Mic streaming now uses dynamic password from settings\n- Listener tracking uses dynamic Icecast password\n- Added Icecast password settings UI section\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"d:/stream_server\" add app/ templates/ .claude/)"
     ]
   }
 }

@@ -70,7 +70,7 @@
                         <th>Interpret</th>
                         <th>Dauer</th>
                         <th>Gespielt</th>
-                        <th style="width: 220px;">Aktionen</th>
+                        <th style="width: 260px;">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,6 +98,16 @@
                                     title="Anhören">
                                 <i class="bi bi-play-fill"></i>
                             </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="editFile({{ file.id }}, '{{ file.title|e if file.title else '' }}', '{{ file.artist|e if file.artist else '' }}', '{{ file.filename }}')"
+                                    title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            {% if current_category == 'music' and preview_enabled %}
+                            <button class="btn btn-sm btn-outline-warning" onclick="regeneratePreview({{ file.id }})"
+                                    title="Hörprobe generieren">
+                                <i class="bi bi-soundwave"></i>
+                            </button>
+                            {% endif %}
                             <button class="btn btn-sm btn-outline-info" onclick="showFileInfo({{ file.id }})"
                                     title="Informationen">
                                 <i class="bi bi-info-circle"></i>
@@ -210,6 +220,48 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit File Modal -->
+<div class="modal fade" id="editFileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Metadaten bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-file-id">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Dateiname</label>
+                    <p class="form-control-plaintext" id="edit-filename">-</p>
+                </div>
+                <div class="mb-3">
+                    <label for="edit-title" class="form-label">Titel</label>
+                    <input type="text" class="form-control" id="edit-title" placeholder="Titel eingeben...">
+                </div>
+                <div class="mb-3">
+                    <label for="edit-artist" class="form-label">Interpret</label>
+                    <input type="text" class="form-control" id="edit-artist" placeholder="Interpret eingeben...">
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="edit-write-to-file" checked>
+                    <label class="form-check-label" for="edit-write-to-file">
+                        In ID3-Tags der Datei schreiben
+                    </label>
+                    <small class="form-text text-muted d-block">
+                        Speichert Titel und Interpret direkt in der Audio-Datei (MP3, FLAC, OGG, M4A)
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveFileMetadata()">
+                    <i class="bi bi-check-lg"></i> Speichern
+                </button>
             </div>
         </div>
     </div>
@@ -429,6 +481,82 @@ function showFileInfo(fileId) {
         .catch(error => {
             showToast('Fehler beim Laden der Datei-Informationen', 'danger');
         });
+}
+
+// ========== EDIT FILE MODAL ==========
+let editModal = null;
+
+function editFile(fileId, title, artist, filename) {
+    document.getElementById('edit-file-id').value = fileId;
+    document.getElementById('edit-filename').textContent = filename;
+    document.getElementById('edit-title').value = title || '';
+    document.getElementById('edit-artist').value = artist || '';
+    document.getElementById('edit-write-to-file').checked = true;
+
+    if (!editModal) {
+        editModal = new bootstrap.Modal(document.getElementById('editFileModal'));
+    }
+    editModal.show();
+}
+
+function saveFileMetadata() {
+    const fileId = document.getElementById('edit-file-id').value;
+    const title = document.getElementById('edit-title').value.trim();
+    const artist = document.getElementById('edit-artist').value.trim();
+    const writeToFile = document.getElementById('edit-write-to-file').checked;
+
+    fetch(`/files/update/${fileId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            title: title,
+            artist: artist,
+            write_to_file: writeToFile
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            // Update the table row
+            const row = document.querySelector(`tr[data-file-id="${fileId}"]`);
+            if (row) {
+                const cells = row.querySelectorAll('td');
+                cells[2].textContent = title || '-';  // Title column
+                cells[3].textContent = artist || '-';  // Artist column
+            }
+            // Close modal
+            if (editModal) {
+                editModal.hide();
+            }
+        } else {
+            showToast('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Fehler beim Speichern: ' + error.message, 'danger');
+    });
+}
+
+// ========== PREVIEW GENERATION ==========
+function regeneratePreview(fileId) {
+    showToast('Generiere Hörprobe...', 'info');
+
+    fetch(`/files/regenerate-preview/${fileId}`, {
+        method: 'POST',
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Fehler: ' + error.message, 'danger');
+    });
 }
 </script>
 {% endblock %}

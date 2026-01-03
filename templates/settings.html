@@ -469,6 +469,43 @@
             </div>
         </div>
 
+        <!-- Music Previews -->
+        <div class="settings-card" id="card-previews">
+            <div class="settings-card-header" onclick="toggleCard('card-previews')">
+                <h6><i class="bi bi-soundwave text-warning"></i> Musik-Hörproben</h6>
+                <i class="bi bi-chevron-down collapse-icon"></i>
+            </div>
+            <div class="settings-card-body">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Generiert 30-sekündige Hörproben aus der Mitte jedes Musik-Tracks (128kbit MP3).
+                    Die Hörprobe-URL wird über die <code>/api/nowplaying</code> API bereitgestellt.
+                </div>
+                <form id="preview-settings-form">
+                    <div class="setting-row">
+                        <div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="preview-enabled"
+                                       {{ 'checked' if stream_settings.preview_enabled }}>
+                                <label class="form-check-label" for="preview-enabled">
+                                    Hörproben aktivieren
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                Bei neuen Uploads werden automatisch Hörproben erstellt.
+                                Für bestehende Dateien den "Hörprobe generieren" Button in der Dateiverwaltung nutzen.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="save-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Crossfade -->
         <div class="settings-card" id="card-crossfade">
             <div class="settings-card-header" onclick="toggleCard('card-crossfade')">
@@ -1105,6 +1142,24 @@ document.getElementById('stream-settings-form').addEventListener('submit', async
         } else {
             showError(data.error || 'Fehler beim Speichern');
         }
+    } catch (error) {
+        showError('Fehler: ' + error);
+    }
+});
+
+// Preview Settings
+document.getElementById('preview-settings-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    try {
+        const response = await fetch('/settings/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                preview_enabled: document.getElementById('preview-enabled').checked
+            })
+        });
+        const data = await response.json();
+        data.success ? showSuccess('Hörproben-Einstellungen gespeichert') : showError(data.error);
     } catch (error) {
         showError('Fehler: ' + error);
     }

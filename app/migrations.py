@@ -9,7 +9,7 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # Current schema version
-SCHEMA_VERSION = 10  # Increment this when adding new migrations
+SCHEMA_VERSION = 11  # Increment this when adding new migrations
 
 
 def get_schema_version():
@@ -320,6 +320,27 @@ def migration_v9_to_v10():
     return True
 
 
+def migration_v10_to_v11():
+    """
+    Migration from v10 to v11:
+    - Add preview_enabled field for music preview generation
+    """
+    logger.info("Running migration v10 -> v11: Adding preview_enabled field")
+
+    changes_made = False
+
+    if add_column_if_not_exists('stream_settings', 'preview_enabled',
+                                  "BOOLEAN DEFAULT 0"):
+        changes_made = True
+
+    if changes_made:
+        logger.info("Migration v10 -> v11 completed successfully")
+    else:
+        logger.info("Migration v10 -> v11: No changes needed (column already exists)")
+
+    return True
+
+
 # Registry of all migrations in order
 MIGRATIONS = {
     1: None,  # Base version (no migration needed)
@@ -332,6 +353,7 @@ MIGRATIONS = {
     8: migration_v7_to_v8,
     9: migration_v8_to_v9,
     10: migration_v9_to_v10,
+    11: migration_v10_to_v11,
 }
 
 

@@ -295,6 +295,9 @@ class StreamSettings(db.Model):
     # Icecast server password (for source, relay, and admin)
     icecast_password = db.Column(db.String(100), default='hackme')
 
+    # Music preview settings
+    preview_enabled = db.Column(db.Boolean, default=False)  # Enable 30-sec previews for music
+
     # Current show tracking
     current_show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=True)
 
@@ -369,7 +372,9 @@ class StreamSettings(db.Model):
             # MCP Settings
             'mcp_api_key_set': bool(self.mcp_api_key),
             # Icecast Settings
-            'icecast_password_set': bool(self.icecast_password)
+            'icecast_password_set': bool(self.icecast_password),
+            # Preview Settings
+            'preview_enabled': self.preview_enabled
         }
 
 
@@ -419,6 +424,7 @@ class NowPlaying(db.Model):
             remaining = max(0, self.duration - elapsed)
 
         return {
+            'track_id': self.audio_file_id,
             'title': self.title or 'Unbekannt',
             'artist': self.artist or '',
             'filename': self.filename,

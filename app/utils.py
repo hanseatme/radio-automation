@@ -11,6 +11,7 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.wave import WAVE
 from mutagen.mp4 import MP4
 from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3, TIT2, TPE1, ID3NoHeaderError
 from app import db
 from app.models import AudioFile
 
@@ -142,6 +143,165 @@ def get_metadata_ffprobe(filepath, metadata=None):
         print(f"ffprobe error for {filepath}: {e}")
 
     return metadata
+
+
+def write_audio_metadata(filepath, title=None, artist=None):
+    """Write metadata (title, artist) to an audio file's tags.
+
+    Supports MP3 (ID3), FLAC, OGG Vorbis, and M4A/AAC (MP4) formats.
+
+    Args:
+        filepath: Path to the audio file
+        title: New title to set (None to skip)
+        artist: New artist to set (None to skip)
+
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    if title is None and artist is None:
+        return True, "Keine Änderungen"
+
+    ext = os.path.splitext(filepath)[1].lower()
+
+    try:
+        if ext == '.mp3':
+            # Handle MP3 files with ID3 tags
+            try:
+                tags = ID3(filepath)
+            except ID3NoHeaderError:
+                # No ID3 tag exists, create one
+                tags = ID3()
+
+            if title is not None:
+                tags['TIT2'] = TIT2(encoding=3, text=title)
+            if artist is not None:
+                tags['TPE1'] = TPE1(encoding=3, text=artist)
+
+            tags.save(filepath)
+            return True, "ID3-Tags aktualisiert"
+
+        elif ext == '.flac':
+            audio = FLAC(filepath)
+            if title is not None:
+                audio['title'] = title
+            if artist is not None:
+                audio['artist'] = artist
+            audio.save()
+            return True, "FLAC-Tags aktualisiert"
+
+        elif ext == '.ogg':
+            audio = OggVorbis(filepath)
+            if title is not None:
+                audio['title'] = [title]
+            if artist is not None:
+                audio['artist'] = [artist]
+            audio.save()
+            return True, "Vorbis-Tags aktualisiert"
+
+        elif ext in ['.m4a', '.aac', '.mp4']:
+            audio = MP4(filepath)
+            if title is not None:
+                audio['\xa9nam'] = [title]
+            if artist is not None:
+                audio['\xa9ART'] = [artist]
+            audio.save()
+            return True, "MP4-Tags aktualisiert"
+
+        elif ext == '.wav':
+            # WAV files typically don't support metadata well
+            return False, "WAV-Dateien unterstützen keine Metadaten-Tags"
+
+        else:
+            return False, f"Format {ext} wird nicht zum Schreiben unterstützt"
+
+    except Exception as e:
+        return False, f"Fehler beim Schreiben der Tags: {str(e)}"
+
+
+# Preview folder path
+PREVIEW_FOLDER = '/media/previews'
+
+
+def get_preview_path(file_id):
+    """Get the path where a preview file should be stored"""
+    return os.path.join(PREVIEW_FOLDER, f'preview_{file_id}.mp3')
+
+
+def generate_preview(audio_file_id, source_path, duration):
+    """Generate a 30-second preview from the middle of an audio file.
+
+    Args:
+        audio_file_id: The database ID of the audio file
+        source_path: Path to the source audio file
+        duration: Duration of the source file in seconds
+
+    Returns:
+        tuple: (success: bool, preview_path_or_error: str)
+    """
+    # Ensure preview folder exists
+    os.makedirs(PREVIEW_FOLDER, exist_ok=True)
+
+    preview_path = get_preview_path(audio_file_id)
+    preview_duration = 30  # seconds
+
+    # Calculate start time (middle of song minus half preview duration)
+    if duration <= preview_duration:
+        # Song is shorter than preview, use the whole song
+        start_time = 0
+        actual_duration = duration
+    else:
+        # Start from middle minus half of preview duration
+        start_time = (duration / 2) - (preview_duration / 2)
+        actual_duration = preview_duration
+
+    try:
+        # Use ffmpeg to extract and encode the preview
+        cmd = [
+            'ffmpeg', '-y',  # Overwrite output file
+            '-ss', str(start_time),  # Start time
+            '-i', source_path,  # Input file
+            '-t', str(actual_duration),  # Duration
+            '-c:a', 'libmp3lame',  # MP3 codec
+            '-b:a', '128k',  # Bitrate
+            '-ar', '44100',  # Sample rate
+            '-ac', '2',  # Stereo
+            '-map_metadata', '-1',  # Strip metadata
+            preview_path
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+        if result.returncode != 0:
+            return False, f"FFmpeg error: {result.stderr}"
+
+        if os.path.exists(preview_path):
+            return True, preview_path
+        else:
+            return False, "Preview file was not created"
+
+    except subprocess.TimeoutExpired:
+        return False, "Preview generation timed out"
+    except Exception as e:
+        return False, f"Error generating preview: {str(e)}"
+
+
+def delete_preview(audio_file_id):
+    """Delete the preview file for an audio file.
+
+    Args:
+        audio_file_id: The database ID of the audio file
+
+    Returns:
+        bool: True if deleted or didn't exist, False on error
+    """
+    preview_path = get_preview_path(audio_file_id)
+    try:
+        if os.path.exists(preview_path):
+            os.remove(preview_path)
+        return True
+    except Exception as e:
+        print(f"Error deleting preview {preview_path}: {e}")
+        return False
 
 
 def is_supported_audio_file(filename):
